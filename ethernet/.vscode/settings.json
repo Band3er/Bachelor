@@ -1,0 +1,29 @@
+{
+    "C_Cpp.intelliSenseEngine": "default",
+    "idf.espIdfPathWin": "C:\\Users\\ionut\\esp\\v5.4\\esp-idf",
+    "idf.pythonInstallPath": "C:\\Users\\ionut\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
+    "idf.openOcdConfigs": [
+        "board/esp32-wrover-kit-3.3v.cfg"
+    ],
+    "idf.portWin": "COM5",
+    "idf.toolsPathWin": "C:\\Users\\ionut\\.espressif",
+    "idf.flashType": "UART",
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "*.ejs": "html",
+        "*.tcc": "cpp",
+        "format": "cpp",
+        "fstream": "cpp",
+        "ostream": "cpp",
+        "sstream": "cpp",
+        "streambuf": "cpp",
+        "exception": "cpp",
+        "memory_resource": "cpp",
+        "iosfwd": "cpp",
+        "new": "cpp",
+        "stop_token": "cpp",
+        "functional": "cpp",
+        "sockets.h": "c",
+        "esp_mac.h": "c"
+    }
+}
