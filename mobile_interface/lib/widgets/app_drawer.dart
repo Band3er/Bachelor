@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -6,29 +7,40 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
+
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          AppBar(
-            title: Text('Hello there'),
-            automaticallyImplyLeading: false,
+
+          Column(
+            children: [
+              AppBar(
+                title: Text('Hello there'),
+                automaticallyImplyLeading: false,
+              ),
+              Divider(),
+              ListTile(
+                leading: Icon(Icons.question_answer),
+                title: Text('Something'),
+                onTap: null,
+              ),
+              Divider(),
+              ListTile(
+                leading: Icon(Icons.question_answer),
+                title: Text('Something'),
+                onTap: null,
+              ),
+              Divider(),
+            ],
           ),
-          Divider(),
-          ListTile(
-            leading: Icon(Icons.question_answer),
-            title: Text('Something'),
-            onTap: null,
-          ),
-          Divider(),
-          ListTile(
-            leading: Icon(Icons.question_answer),
-            title: Text('Something'),
-            onTap: null,
-          ),
-          Divider(),
-          ListTile(
-            leading: Icon(Icons.question_answer),
-            title: Text('Something'),
-            onTap: null,
+          Align(
+            child: ListTile(
+              leading: Icon(Icons.logout),
+              title: Text('Logout'),
+              onTap: ()=>context.go('/auth'),
+
+            ),
+            alignment: Alignment.bottomCenter,
           ),
         ],
       ),

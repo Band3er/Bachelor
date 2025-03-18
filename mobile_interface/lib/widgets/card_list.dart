@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
 // TODO: initializam lista cu chestii ce is prin LAN cu ARP
+Map<String, String> listDevices = {
+  'id':'',
+  'macAdd':'',
+  'ip':''
+};
 
 class CardsList extends StatelessWidget {
   const CardsList({super.key});
@@ -23,7 +28,7 @@ class CardsList extends StatelessWidget {
                 SizedBox(height: 12,),
                 Text("Mac Address: C9:FD:17:37:D8:11"),
                 Text("Ip: 81.227.255.101"),
-                Text("Last online: 2h ago")
+                //Text("Last online: 2h ago")
               ],
 
             ),
