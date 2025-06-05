@@ -9,6 +9,9 @@
 #include "esp_mac.h"
 #include "driver/gpio.h"
 #include "sdkconfig.h"
+
+#define TAG "ethernet_init"
+
 #if CONFIG_EXAMPLE_USE_SPI_ETHERNET
 #include "driver/spi_master.h"
 #endif // CONFIG_EXAMPLE_USE_SPI_ETHERNET
@@ -43,7 +46,6 @@ typedef struct {
     uint8_t *mac_addr;
 }spi_eth_module_config_t;
 
-static const char *TAG = "example_eth_init";
 #if CONFIG_EXAMPLE_USE_SPI_ETHERNET
 static bool gpio_isr_svc_init_by_eth = false; // indicates that we initialized the GPIO ISR service
 #endif // CONFIG_EXAMPLE_USE_SPI_ETHERNET

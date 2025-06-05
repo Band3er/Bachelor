@@ -14,6 +14,7 @@
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 #include <lwip/netdb.h>
+#include "cJSON.h"
 
 #include "scan.h"
 
@@ -36,3 +37,5 @@ static const char *REQUEST = "GET " WEB_PATH " HTTP/1.0\r\n"
 static void http_get_task(deviceInfo device);
 static void http_post_task(deviceInfo device);
 void http_get_post_task(void *pvParameters);
+
+double mac_to_double(uint8_t mac[6]);

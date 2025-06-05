@@ -1,5 +1,12 @@
 #include "http_requests.h"
 
+double mac_to_double(uint8_t mac[6]){
+    uint64_t val = 0;
+    for(size_t i = 0; i < 6; ++i){
+        val = (val << 8) | mac[i];
+    }
+    return (double)val;
+}
 
 void http_get_task(deviceInfo device)
 {
@@ -130,6 +137,13 @@ void http_post_task(deviceInfo device)
         // Mesajul JSON pe care îl trimitem
         //char *post_data = "{online:" +  device.online + "ip: , mac:}";
 
+        cJSON *json = cJSON_CreateObject();
+        cJSON_AddNumberToObject(json, "online", device.online);
+        cJSON_AddNumberToObject(json, "ip", device.ip);
+        cJSON_AddNumberToObject(json, "mac", mac_to_double(device.mac));
+
+        char *json_str = cJSON_PrintUnformatted(json);
+
         // Construim cererea HTTP POST
         char request[256];
         snprintf(request, sizeof(request),
@@ -139,7 +153,7 @@ void http_post_task(deviceInfo device)
                  "Content-Length: %d\r\n"
                  "\r\n"
                  "%s",WEB_SERVER, WEB_PORT,
-                 strlen(device), device);
+                 strlen(json_str), json_str);
 
         if (write(s, request, strlen(request)) < 0) {
             ESP_LOGE(TAG, "Socket send failed");
