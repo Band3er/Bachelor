@@ -8,7 +8,16 @@ double mac_to_double(uint8_t mac[6]){
     return (double)val;
 }
 
-void http_get_task(deviceInfo device)
+void mac_to_char(const char *mac_str, uint8_t mac[6]) {
+    char byte_str[3] = {0};
+    for (int i = 0; i < 6; i++) {
+        memcpy(byte_str, mac_str + i * 2, 2);
+        mac[i] = (uint8_t) strtol(byte_str, NULL, 16);
+    }
+}
+
+
+cJSON* http_get()
 {
     const struct addrinfo hints = {
         .ai_family = AF_INET,
@@ -17,7 +26,7 @@ void http_get_task(deviceInfo device)
     struct addrinfo *res;
     struct in_addr *addr;
     int s, r;
-    char recv_buf[64];
+    char recv_buf[128];
 
     while(1) {
         int err = getaddrinfo(WEB_SERVER, WEB_PORT, &hints, &res);
@@ -83,6 +92,10 @@ void http_get_task(deviceInfo device)
             }
         } while(r > 0);
 
+        
+
+        
+
         ESP_LOGI(TAG, "... done reading from socket. Last read return=%d errno=%d.", r, errno);
         close(s);
         for(int countdown = 10; countdown >= 0; countdown--) {
@@ -94,7 +107,7 @@ void http_get_task(deviceInfo device)
     }
 }
 
-void http_post_task(deviceInfo device)
+void http_post(deviceInfo device)
 {
     const struct addrinfo hints = {
         .ai_family = AF_INET,
@@ -137,10 +150,7 @@ void http_post_task(deviceInfo device)
         // Mesajul JSON pe care îl trimitem
         //char *post_data = "{online:" +  device.online + "ip: , mac:}";
 
-        cJSON *json = cJSON_CreateObject();
-        cJSON_AddNumberToObject(json, "online", device.online);
-        cJSON_AddNumberToObject(json, "ip", device.ip);
-        cJSON_AddNumberToObject(json, "mac", mac_to_double(device.mac));
+        
 
         char *json_str = cJSON_PrintUnformatted(json);
 
@@ -180,11 +190,11 @@ void http_post_task(deviceInfo device)
     }
 }
 
-void http_get_post_task(void *pvParameters){
+void http_get_post(void *pvParameters){
     while(1){
         //http_get_task();
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        //vTaskDelay(5000 / portTICK_PERIOD_MS);
         //http_post_task();
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        //vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }

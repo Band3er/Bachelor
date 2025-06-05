@@ -23,6 +23,8 @@
 #include "http_requests.h"
 #include "scan.h"
 
+#include "cJSON.h"
+
 #define TAG "ethernet_init"
 
 //static const char *TAG = "eth_example";
@@ -104,8 +106,43 @@ void app_main(void)
     // Start Ethernet driver state machine
     esp_err_t err = esp_eth_start(eth_handles[0]);
 
+    deviceInfo *device;
+    uint32_t deviceCounts;
+
+    command command;
+
     if(err == ESP_OK){
-        
+        if(command.do_arp){
+            arpScan(eth_netifs[0]);
+            device = getDeviceInfos();
+            deviceCounts = getDeviceCount(); // online devices
+
+
+
+            http_post(device); // schimba ca nu i bun
+            cJSON *json = cJSON_CreateObject();
+        cJSON_AddNumberToObject(json, "online", device.online);
+        cJSON_AddNumberToObject(json, "ip", device.ip);
+        cJSON_AddNumberToObject(json, "mac", mac_to_double(device.mac));
+
+
+
+        cJSON* json = http_get();
+        command command;
+        deviceInfo device;
+        // create cjson from the response
+        cJSON *json;
+        json = cJSON_Parse(recv_buf);
+        mac_to_char(cJSON_GetNumberValue(cJSON_GetObjectItem(json, mac)), device.mac);
+        device.ip = cJSON_GetNumberValue(cJSON_GetObjectItem(json, ip));
+        command.do_arp = cJSON_GetNumberValue(cJSON_GetObjectItem(json, do_arp));
+        command.send_wol = cJSON_GetNumberValue(cJSON_GetObjectItem(json, send_wol));
+        cJSON_Delete(json);
+
+        } else if(command.send_wol) {
+            // set which pc to send the packet
+            //udp_client_task(device->mac); - nu e bun oricum
+        }
     }else{
         ESP_ERROR_CHECK(err);
     }
@@ -113,7 +150,7 @@ void app_main(void)
 
     
     // TODO
-    xTaskCreate(&http_get_post_task, "http_get_post_task", 8192, NULL, 5, NULL);
+    //xTaskCreate(&http_get_post_task, "http_get_post_task", 8192, NULL, 5, NULL);
     //xTaskCreate(arp_scan_task, "arp_scan_task", 4096, NULL, 5, NULL);
     //arp_scan_task(eth_handles[0]);
 

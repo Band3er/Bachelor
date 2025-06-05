@@ -34,8 +34,13 @@ static const char *REQUEST = "GET " WEB_PATH " HTTP/1.0\r\n"
     "User-Agent: esp-idf/1.0 esp32\r\n"
     "\r\n";
 
-static void http_get_task(deviceInfo device);
-static void http_post_task(deviceInfo device);
-void http_get_post_task(void *pvParameters);
+typedef struct command {
+    bool do_arp;
+    bool send_wol;
+}command;
+
+cJSON* http_get();
+void http_post(deviceInfo device);
+void http_get_post(void *pvParameters);
 
 double mac_to_double(uint8_t mac[6]);

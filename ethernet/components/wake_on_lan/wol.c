@@ -11,9 +11,9 @@
 */
 #define PORT 9
 
-void udp_client_task(){
+void udp_client_task(char *mac){
     
-char dest_mac[13] = "3065ec9e38ee";
+//char mac[13] = "3065ec9e38ee";
 uint8_t magic_packet[102];
 memset(magic_packet, 0xFF, 6);
 
@@ -21,8 +21,8 @@ uint8_t target_mac[6];
 char slice[3] = {0}; // trebuie 3 pentru terminator null
 
 for (int i = 0; i < 12; i += 2) {
-    slice[0] = dest_mac[i];
-    slice[1] = dest_mac[i + 1];
+    slice[0] = mac[i];
+    slice[1] = mac[i + 1];
     target_mac[i / 2] = (uint8_t)strtol(slice, NULL, 16);
 }
 

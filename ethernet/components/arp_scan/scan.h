@@ -16,10 +16,10 @@
 #define TAG "arp_scan"
 
 #define ARPTIMEOUT 5000
-#define ARP_TABLE_SIZE 5
+#define ARP_TABLE_SIZE 20
 
 typedef struct deviceInfo{
-    bool online;
+    bool online = 0;
     uint32_t ip;
     uint8_t mac[6];
 } deviceInfo;
