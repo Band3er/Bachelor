@@ -18,7 +18,7 @@
 
 #include "scan.h"
 
-#define WEB_SERVER "192.168.100.3"  // change based on the laptop ip
+#define WEB_SERVER "192.168.100.161"  // change based on the laptop ip
 #define WEB_PORT "3000"
 #define WEB_PATH "/data"
 
@@ -39,8 +39,8 @@ typedef struct command {
     bool send_wol;
 }command;
 
-cJSON* http_get();
-void http_post(deviceInfo device);
+void http_get(char recv_buf[128]);
+void http_post(cJSON *json);
 void http_get_post(void *pvParameters);
 
 double mac_to_double(uint8_t mac[6]);

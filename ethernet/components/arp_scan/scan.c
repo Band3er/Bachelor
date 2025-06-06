@@ -49,24 +49,42 @@ deviceInfo * getDeviceInfos(){
 void arpScan(esp_netif_t *lwip_netif){
     ESP_LOGI(TAG, "Starting ARP scan");
 
+
+
+    char char_target[IP4ADDR_STRLEN_MAX];
+
+
+
     struct netif *netif = (struct netif *)esp_netif_get_netif_impl(lwip_netif);
-    
+    esp_ip4_addr_t clone;
+    clone.addr = netif->ip_addr.u_addr.ip4.addr;
+    esp_ip4addr_ntoa(&clone, char_target, IP4ADDR_STRLEN_MAX);
+    ESP_LOGI(TAG, "netif->ip_addr.u_addr.ip4.addr = %s", char_target);
 
     esp_netif_ip_info_t ip_info;
     esp_netif_get_ip_info(lwip_netif, &ip_info);
+    esp_ip4addr_ntoa(&ip_info.ip, char_target, IP4ADDR_STRLEN_MAX);
+    ESP_LOGI(TAG, "ip_info.ip.addr = %s", char_target);
 
     esp_ip4_addr_t target_ipp;
-    target_ipp.addr = ip_info.netmask.addr && ip_info.ip.addr;
+    target_ipp.addr = ip_info.netmask.addr & ip_info.ip.addr;
+    esp_ip4addr_ntoa(&target_ipp, char_target, IP4ADDR_STRLEN_MAX);
+    ESP_LOGI(TAG, "target_ipp.addr = %s", char_target);
+    esp_ip4addr_ntoa(&ip_info.netmask, char_target, IP4ADDR_STRLEN_MAX);
+    ESP_LOGI(TAG, "ip_info.netmask = %s", char_target);
+    esp_ip4addr_ntoa(&ip_info.netmask, char_target, IP4ADDR_STRLEN_MAX);
+    ESP_LOGI(TAG, "ip_info.netmask = %s", char_target);
 
     uint32_t normal_mask = switch_ip_orientation(&ip_info.netmask.addr);
-    ESP_LOGI(TAG, "normal_mask = %"PRIu32, normal_mask);
+    //esp_ip4addr_ntoa(&normal_mask.addr, char_target, IP4ADDR_STRLEN_MAX);
+    //ESP_LOGI(TAG, "normal_mask = %s", char_target);
+
     maxSubnetDevice = UINT32_MAX - normal_mask - 1;
     ESP_LOGI(TAG, "maxSubnetDevice = %"PRIu32, maxSubnetDevice);
 
     deviceInfos = calloc(maxSubnetDevice, sizeof(deviceInfo));
     if(deviceInfos == NULL){
         ESP_LOGI(TAG, "Not enough space");
-        //return;
     }
 
     while(1 && netif != NULL){
@@ -121,7 +139,7 @@ void arpScan(esp_netif_t *lwip_netif){
                     onlineDevicesCount++;
                 }
                 else{ // not fount in arp table
-                    if(deviceInfos[currentIpCount].online == 1){ // previously online
+                    if(deviceInfos[currentIpCount].online == 1 || deviceInfos[currentIpCount].online == 2){ // previously online
                         deviceInfos[currentIpCount].online = 2; // prvonline
                     }
                     else{
@@ -140,20 +158,21 @@ void arpScan(esp_netif_t *lwip_netif){
         ESP_LOGI(TAG, "%" PRIu32 " devices are on local network", onlineDevicesCount);
 
         // wait unti next scan cycle
-        ESP_LOGI(TAG, "Sacnner now sleeping");
+        ESP_LOGI(TAG, "Scanner now sleeping");
 
         /* viewing database */
         
-        for(int i=0; i<100; i++){
-            if(deviceInfos[i].online == 1){
-                ESP_LOGI(TAG, "Online %02X:%02X:%02X:%02X:%02X:%02X",\
-                deviceInfos[i].mac[0], deviceInfos[i].mac[1],deviceInfos[i].mac[2],deviceInfos[i].mac[3],deviceInfos[i].mac[4],deviceInfos[i].mac[5]);
-            }
-        }
+        //for(int i=0; i<100; i++){
+        //    if(deviceInfos[i].online == 1){
+        //        ESP_LOGI(TAG, "Online %02X:%02X:%02X:%02X:%02X:%02X",
+        //        deviceInfos[i].mac[0], deviceInfos[i].mac[1],deviceInfos[i].mac[2],deviceInfos[i].mac[3],deviceInfos[i].mac[4],deviceInfos[i].mac[5]);
+        //    }
+        //}
         
 
         // sleeping task until next scan cycle
         vTaskDelay( 10*1000 / portTICK_PERIOD_MS);
+        break;
     }
     /* Loop End...*/
 }

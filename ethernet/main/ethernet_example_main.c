@@ -16,6 +16,8 @@
 #include "lwip/ip_addr.h"
 #include "lwip/inet.h"
 
+#include "freertos/semphr.h"
+
 #include "esp_eth_driver.h"
 
 #include "wol.h"
@@ -58,6 +60,10 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base,
     }
 }
 
+// !!!semafor
+SemaphoreHandle_t xSemaphore;
+
+
 /** Event handler for IP_EVENT_ETH_GOT_IP */
 static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
                                  int32_t event_id, void *event_data)
@@ -71,10 +77,21 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
     ESP_LOGI(TAG, "ETHMASK:" IPSTR, IP2STR(&ip_info->netmask));
     ESP_LOGI(TAG, "ETHGW:" IPSTR, IP2STR(&ip_info->gw));
     ESP_LOGI(TAG, "~~~~~~~~~~~");
+
+    xSemaphoreGive(xSemaphore);
+}
+
+
+
+void vATask(void * pvParameters){
+    //xSemaphore = xSemaphoreCreateBinary();
+
+    //if(xSemaphore != NULL){    }
 }
 
 void app_main(void)
 {
+    xSemaphore = xSemaphoreCreateBinary();
     // Initialize Ethernet driver
     uint8_t eth_port_cnt = 1;
     esp_eth_handle_t *eth_handles;
@@ -103,49 +120,54 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, &eth_event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &got_ip_event_handler, NULL));
 
+    ESP_ERROR_CHECK(esp_eth_start(eth_handles[0]));
+
     // Start Ethernet driver state machine
-    esp_err_t err = esp_eth_start(eth_handles[0]);
 
-    deviceInfo *device;
-    uint32_t deviceCounts;
-
-    command command;
-
-    if(err == ESP_OK){
-        if(command.do_arp){
-            arpScan(eth_netifs[0]);
-            device = getDeviceInfos();
-            deviceCounts = getDeviceCount(); // online devices
-
-
-
-            http_post(device); // schimba ca nu i bun
-            cJSON *json = cJSON_CreateObject();
-        cJSON_AddNumberToObject(json, "online", device.online);
-        cJSON_AddNumberToObject(json, "ip", device.ip);
-        cJSON_AddNumberToObject(json, "mac", mac_to_double(device.mac));
-
-
-
-        cJSON* json = http_get();
-        command command;
-        deviceInfo device;
-        // create cjson from the response
-        cJSON *json;
-        json = cJSON_Parse(recv_buf);
-        mac_to_char(cJSON_GetNumberValue(cJSON_GetObjectItem(json, mac)), device.mac);
-        device.ip = cJSON_GetNumberValue(cJSON_GetObjectItem(json, ip));
-        command.do_arp = cJSON_GetNumberValue(cJSON_GetObjectItem(json, do_arp));
-        command.send_wol = cJSON_GetNumberValue(cJSON_GetObjectItem(json, send_wol));
-        cJSON_Delete(json);
-
-        } else if(command.send_wol) {
-            // set which pc to send the packet
-            //udp_client_task(device->mac); - nu e bun oricum
-        }
-    }else{
-        ESP_ERROR_CHECK(err);
+    // ast pana se atribuie ip, daca nu, dupa 10s trece pe ramura de fals
+    if (xSemaphoreTake(xSemaphore, pdMS_TO_TICKS(10000)) == pdTRUE) {
+        ESP_LOGI("eth", "Conexiune Ethernet stabilită. Continuăm.");
+    // Aici poți apela http_get() sau alt cod dependent de conexiune
+    } else {
+        ESP_LOGE("eth", "Timeout: nu s-a obținut IP de la Ethernet.");
     }
+    
+    char recv_buf[128];
+
+
+    http_get(recv_buf);
+    cJSON *json_get;
+    json_get = cJSON_CreateObject();
+    json_get = cJSON_Parse(recv_buf);
+    //ESP_LOGI("Http_Recv", "json_get = %s", cJSON_Print(json_get));
+    command command;
+    command.do_arp = cJSON_GetNumberValue(cJSON_GetObjectItem(json_get, "do_arp"));
+    command.send_wol = cJSON_GetNumberValue(cJSON_GetObjectItem(json_get, "send_wol"));
+    //print what have i received from the server
+    if(command.do_arp){
+          uint32_t deviceCounts;
+          deviceInfo *devices;
+          arpScan(eth_netifs[0]);
+          devices = getDeviceInfos();
+          deviceCounts = getDeviceCount(); // online devices
+          
+          cJSON* json_array = cJSON_CreateArray();
+          for(size_t i = 0; i < deviceCounts; ++i){
+              cJSON* json_obj = cJSON_CreateObject();
+              cJSON_AddNumberToObject(json_obj, "online", devices[i].online);
+              cJSON_AddNumberToObject(json_obj, "ip", devices[i].ip);
+              cJSON_AddNumberToObject(json_obj, "mac", mac_to_double(devices[i].mac));
+              cJSON_AddItemToArray(json_array, json_obj);
+          }
+          
+          ESP_LOGI("Http_Post", "json_post = %s", cJSON_Print(json_array));
+          http_post(json_array);
+          cJSON_Delete(json_array);
+      } else if(command.send_wol) {
+          // set which pc to send the packet
+          //udp_client_task(device->mac); - nu e bun oricum
+      }
+    
 
 
     

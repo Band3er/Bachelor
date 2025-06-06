@@ -5,7 +5,7 @@
     "idf.openOcdConfigs": [
         "board/esp32-wrover-kit-3.3v.cfg"
     ],
-    "idf.portWin": "COM5",
+    "idf.portWin": "COM6",
     "idf.toolsPathWin": "C:\\Users\\ionut\\.espressif",
     "idf.flashType": "UART",
     "files.associations": {
@@ -24,6 +24,18 @@
         "stop_token": "cpp",
         "functional": "cpp",
         "sockets.h": "c",
-        "esp_mac.h": "c"
+        "esp_mac.h": "c",
+        "arp_scan.h": "c",
+        "inet.h": "c",
+        "ip_addr.h": "c",
+        "etharp.h": "c",
+        "esp_system.h": "c",
+        "freertos.h": "c",
+        "http_requests.h": "c",
+        "esp_event.h": "c",
+        "netdb.h": "c",
+        "sdkconfig.h": "c",
+        "esp_netif.h": "c",
+        "array": "c"
     }
 }
