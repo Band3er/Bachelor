@@ -35,11 +35,11 @@ static const char *REQUEST = "GET " WEB_PATH " HTTP/1.0\r\n"
     "\r\n";
 
 typedef struct command {
-    bool do_arp;
-    bool send_wol;
+    int do_arp;
+    int send_wol;
 }command;
 
-void http_get(char recv_buf[128]);
+void http_get(char recv_buf[512]);
 void http_post(cJSON *json);
 void http_get_post(void *pvParameters);
 

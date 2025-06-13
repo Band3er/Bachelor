@@ -15,9 +15,9 @@ void mac_to_char(const char *mac_str, uint8_t mac[6]) {
         mac[i] = (uint8_t) strtol(byte_str, NULL, 16);
     }
 }
+#define MAX_RESPONSE_SIZE 512
 
-
-void http_get(char recv_buf[128])
+void http_get(char recv_buf[512])
 {
     const struct addrinfo hints = {
         .ai_family = AF_INET,
@@ -83,14 +83,34 @@ void http_get(char recv_buf[128])
         }
         ESP_LOGI(TAG, "... set socket receiving timeout success");
 
-        /* Read HTTP response */
-        do {
-            bzero(recv_buf, sizeof(recv_buf));
-            r = read(s, recv_buf, sizeof(recv_buf)-1);
-            for(int i = 0; i < r; i++) {
-                putchar(recv_buf[i]);
+    char full_response[MAX_RESPONSE_SIZE];  // aici salvăm tot
+    int total_len = 0;
+
+    /* Read HTTP response */
+    do {
+        bzero(recv_buf, sizeof(recv_buf));
+        r = read(s, recv_buf, sizeof(recv_buf)-1);
+        if (r > 0) {
+            if ((total_len + r) < MAX_RESPONSE_SIZE) {
+                memcpy(full_response + total_len, recv_buf, r);
+                total_len += r;
+            } else {
+                ESP_LOGW("HTTP", "Buffer overflow, response too large");
+                break;
             }
-        } while(r > 0);
+        }
+    } while (r > 0);
+
+    full_response[total_len] = '\0';  // Null-terminate
+    printf("\nFull HTTP response:\n%s\n", full_response);
+    //recv_buf = full_response;
+    strcpy(full_response, strstr(full_response, "{"));
+    printf("\nFull HTTP response:\n%s\n", full_response);
+    strcpy(recv_buf, full_response);
+    
+    //cJSON *json_get = cJSON_Parse(full_response);
+    //ESP_LOGI("Http_Recv", "json_get = %s", cJSON_Print(json_get));
+        
 
         ESP_LOGI(TAG, "... done reading from socket. Last read return=%d errno=%d.", r, errno);
         //close(s);
@@ -144,6 +164,7 @@ void http_post(cJSON *json)
         freeaddrinfo(res);
 
         char *json_str = cJSON_PrintUnformatted(json);
+        ESP_LOGI("POST", "json_send = %s", json_str);
 
         // Construim cererea HTTP POST
         char request[256];

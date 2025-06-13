@@ -11,7 +11,7 @@
 */
 #define PORT 9
 
-void udp_client_task(char *mac){
+void udp_client_task(char mac[13]){
     
 //char mac[13] = "3065ec9e38ee";
 uint8_t magic_packet[102];
@@ -43,15 +43,15 @@ dest_addr.sin_family = AF_INET;
 dest_addr.sin_port = htons(9);
 inet_pton(AF_INET, "192.168.0.255", &dest_addr.sin_addr.s_addr);
 
-while (1) {
+
     int err = sendto(sock, magic_packet, sizeof(magic_packet), 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
     if (err < 0) {
         ESP_LOGE(TAG, "Failed to send Wake_on_lan packet err: %d", errno);
     } else {
         ESP_LOGI(TAG, "Wake-on-Lan packet sent successfully");
     }
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
-}
+    //vTaskDelay(2000 / portTICK_PERIOD_MS);
+
 
 close(sock);    
 }

@@ -89,6 +89,8 @@ void vATask(void * pvParameters){
     //if(xSemaphore != NULL){    }
 }
 
+
+
 void app_main(void)
 {
     xSemaphore = xSemaphoreCreateBinary();
@@ -132,40 +134,82 @@ void app_main(void)
         ESP_LOGE("eth", "Timeout: nu s-a obținut IP de la Ethernet.");
     }
     
-    char recv_buf[128];
+    char recv_buf[512];
 
 
     http_get(recv_buf);
-    cJSON *json_get;
-    json_get = cJSON_CreateObject();
-    json_get = cJSON_Parse(recv_buf);
-    //ESP_LOGI("Http_Recv", "json_get = %s", cJSON_Print(json_get));
+    //if(strcmp(recv_buf, "") > 0){
+    //    ESP_LOGI("print", "are valoare in el nebunu");
+    //}else {
+    //    ESP_LOGE("print", "NU ARE NIMIC IN EL");
+    //}
+
+    for (size_t i = 0; i < strlen(recv_buf); ++i){
+        //printf("%s", recv_buf[i]);
+    }
+
+    cJSON *json_get = cJSON_Parse(recv_buf);
+
+    FILE *fptr;
+    fptr = fopen("logs.txt", "w");
+
+    //ESP_LOGE("print", "%s", recv_buf);
+
+    //fprintf(fptr, cJSON_Print(json_get));
+    fclose(fptr);
+  
+    ESP_LOGI("Http_Recv", "json_get = %s", cJSON_Print(json_get));
+        
+
     command command;
+    
     command.do_arp = cJSON_GetNumberValue(cJSON_GetObjectItem(json_get, "do_arp"));
     command.send_wol = cJSON_GetNumberValue(cJSON_GetObjectItem(json_get, "send_wol"));
+    char *mac;
+    mac = cJSON_GetStringValue(cJSON_GetObjectItem(json_get, "mac"));
+    ESP_LOGI("http", "do_arp = %d, send_wol = %d, mac = %s", command.do_arp, command.send_wol, mac);
+
     //print what have i received from the server
-    if(command.do_arp){
+    if(command.do_arp == 1){
           uint32_t deviceCounts;
           deviceInfo *devices;
           arpScan(eth_netifs[0]);
           devices = getDeviceInfos();
           deviceCounts = getDeviceCount(); // online devices
-          
+          ESP_LOGI("Http_Post", "deviceCounts = %" PRIu32, deviceCounts);
+          ip4_addr_t dv;
+            char *ip;
           cJSON* json_array = cJSON_CreateArray();
           for(size_t i = 0; i < deviceCounts; ++i){
               cJSON* json_obj = cJSON_CreateObject();
+              dv.addr = devices[i].ip;
+              ip = ip4addr_ntoa(&dv);
               cJSON_AddNumberToObject(json_obj, "online", devices[i].online);
-              cJSON_AddNumberToObject(json_obj, "ip", devices[i].ip);
+              cJSON_AddStringToObject(json_obj, "ip", ip);
               cJSON_AddNumberToObject(json_obj, "mac", mac_to_double(devices[i].mac));
+              ESP_LOGI("Http_Post", "device.online = %d, device.mac = %f", devices[i].online, mac_to_double(devices[i].mac));
+              //ESP_LOGI("Http_post", "device.ip = "PRIu32, devices[i].ip);
+              
+              ESP_LOGI("Http_post", "device.ip: %s", ip);
               cJSON_AddItemToArray(json_array, json_obj);
+              ESP_LOGI("http_post", "json_obj = %s", cJSON_Print(json_obj));
+              ESP_LOGI("http_post", "json_array = %s", cJSON_Print(json_array));
+              //cJSON_Delete(json_obj);
           }
           
           ESP_LOGI("Http_Post", "json_post = %s", cJSON_Print(json_array));
           http_post(json_array);
           cJSON_Delete(json_array);
-      } else if(command.send_wol) {
+          command.do_arp = 0;
+      } else if(command.send_wol == 1) {
           // set which pc to send the packet
           //udp_client_task(device->mac); - nu e bun oricum
+        udp_client_task(mac);
+        cJSON *json_response = cJSON_CreateObject();
+        cJSON_AddStringToObject(json_response, "response", "packet sent");
+        http_post(json_response);
+        cJSON_Delete(json_response);
+        command.send_wol = 0;
       }
     
 

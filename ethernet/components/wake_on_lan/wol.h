@@ -21,4 +21,4 @@
 
 #define TAG "wol_packet"
 
-void udp_client_task();
+void udp_client_task(char mac[13]);
