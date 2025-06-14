@@ -27,6 +27,8 @@ Future main() async {
 }
 
 Future<Database> initDatabase() async {
+  String path = await getDatabasesPath();
+  debugPrint("The path where the database is: " + path);
   return openDatabase(
     // Set the path to the database. Note: Using the `join` function from the
     // `path` package is best practice to ensure the path is correctly
