@@ -169,7 +169,7 @@ void http_post(cJSON *json)
         // Construim cererea HTTP POST
         char request[256];
         snprintf(request, sizeof(request),
-                 "POST /data HTTP/1.1\r\n"
+                 "POST /results HTTP/1.1\r\n"
                  "Host: %s:%s\r\n"
                  "Content-Type: application/json\r\n"
                  "Content-Length: %d\r\n"

@@ -15,7 +15,7 @@
 
 #define TAG "arp_scan"
 
-#define ARPTIMEOUT 500 // adjust to be biiger TODO
+#define ARPTIMEOUT 100 // adjust to be biiger TODO
 #define ARP_TABLE_SIZE 5
 
 typedef struct deviceInfo{

@@ -36,6 +36,10 @@
         "netdb.h": "c",
         "sdkconfig.h": "c",
         "esp_netif.h": "c",
-        "array": "c"
+        "array": "c",
+        "cstdio": "c",
+        "cstring": "c",
+        "typeinfo": "c",
+        "esp_log.h": "c"
     }
 }

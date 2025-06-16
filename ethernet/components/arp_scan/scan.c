@@ -86,7 +86,13 @@ void arpScan(esp_netif_t *lwip_netif){
     if(deviceInfos == NULL){
         ESP_LOGI(TAG, "Not enough space");
     }
-
+    
+    deviceInfo *onlineDevices = calloc(maxSubnetDevice, sizeof(deviceInfo));
+if (onlineDevices == NULL) {
+    ESP_LOGI(TAG, "Not enough space for onlineDevices array");
+    return;
+}
+uint32_t deviceIndex = 0;
     while(1 && netif != NULL){
         uint32_t onlineDevicesCount = 0;
 
@@ -131,12 +137,17 @@ void arpScan(esp_netif_t *lwip_netif){
                     esp_ip4addr_ntoa(&currAddrs[i], char_currIP, IP4ADDR_STRLEN_MAX);
                     ESP_LOGI(TAG, "%s's MAC address is %s", char_currIP, mac);
 
-                    // stroing information to database
-                    deviceInfos[currentIpCount] = (deviceInfo){1, currAddrs[i].addr}; // storing online status and ip address specified by ip No.
-                    memcpy(deviceInfos[currentIpCount].mac, eth_ret->addr, 6); // storing mac address into database specified by ip No.
+                    //// stroing information to database
+                    //deviceInfos[currentIpCount] = (deviceInfo){1, currAddrs[i].addr}; // storing online status and ip address specified by ip No.
+                    //memcpy(deviceInfos[currentIpCount].mac, eth_ret->addr, 6); // storing mac address into database specified by ip No.
+//
+                    //// count total online device
+                    //onlineDevicesCount++;
 
-                    // count total online device
-                    onlineDevicesCount++;
+                    // Save info to onlineDevices[deviceIndex++] instead of scattered deviceInfos[]
+onlineDevices[deviceIndex] = (deviceInfo){1, currAddrs[i].addr}; // online + IP
+memcpy(onlineDevices[deviceIndex].mac, eth_ret->addr, 6);
+deviceIndex++;
                 }
                 else{ // not fount in arp table
                     if(deviceInfos[currentIpCount].online == 1 || deviceInfos[currentIpCount].online == 2){ // previously online
@@ -152,26 +163,35 @@ void arpScan(esp_netif_t *lwip_netif){
         }
 
         // update deviceCount
-        deviceCount = onlineDevicesCount;
-
-        // print network scanning result
-        ESP_LOGI(TAG, "%" PRIu32 " devices are on local network", onlineDevicesCount);
-
-        // wait unti next scan cycle
-        ESP_LOGI(TAG, "Scanner now sleeping");
-
-        /* viewing database */
-        
+        //deviceCount = onlineDevicesCount;
+//
+        //// print network scanning result
+        //ESP_LOGI(TAG, "%" PRIu32 " devices are on local network", onlineDevicesCount);
+//
+        //// wait unti next scan cycle
+        //ESP_LOGI(TAG, "Scanner now sleeping");
+//
+        ///* viewing database */
+        //
         //for(int i=0; i<100; i++){
         //    if(deviceInfos[i].online == 1){
         //        ESP_LOGI(TAG, "Online %02X:%02X:%02X:%02X:%02X:%02X",
         //        deviceInfos[i].mac[0], deviceInfos[i].mac[1],deviceInfos[i].mac[2],deviceInfos[i].mac[3],deviceInfos[i].mac[4],deviceInfos[i].mac[5]);
         //    }
         //}
+//
+        //        if (deviceInfos) {
+        //    free(deviceInfos);
+        //}
+
+        deviceInfos = onlineDevices;
+        deviceCount = deviceIndex; // number of online devices
+
+        ESP_LOGI(TAG, "Stored %" PRIu32 " online devices in compact format", deviceCount);
         
 
         // sleeping task until next scan cycle
-        vTaskDelay( 10*1000 / portTICK_PERIOD_MS);
+        //vTaskDelay( 10*1000 / portTICK_PERIOD_MS);
         break;
     }
     /* Loop End...*/

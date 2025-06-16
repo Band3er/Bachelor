@@ -18,9 +18,9 @@
 
 #include "scan.h"
 
-#define WEB_SERVER "192.168.100.161"  // change based on the laptop ip
+#define WEB_SERVER "192.168.100.3"  // change based on the laptop ip
 #define WEB_PORT "3000"
-#define WEB_PATH "/data"
+#define WEB_PATH "/commands"
 
 // test internet conenction
 //#define WEB_SERVER "httpbin.org"
