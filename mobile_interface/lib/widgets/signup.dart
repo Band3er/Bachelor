@@ -10,6 +10,8 @@ import 'package:intl/intl.dart';
 
 import '../providers/user.dart';
 
+import '../globals.dart';
+
 class Signup extends StatefulWidget {
   final VoidCallback onToggle;
 
@@ -61,12 +63,12 @@ class _SignupState extends State<Signup> {
 
 
         //TODO: add logic if same email is inserted
-        debugPrint('From the signup save form: ' + user.toString());
+        debugPrint('$time From the signup save form: ' + user.toString());
         await database.insert('users', user.toMap());
 
         context.go('/');
       } catch (err) {
-        debugPrint('From the signup save form: ' + err.toString());
+        debugPrint('$time From the signup save form: ' + err.toString());
         _showErrorDialog(err.toString());
       }
     }
@@ -98,12 +100,12 @@ class _SignupState extends State<Signup> {
                   FocusScope.of(context).requestFocus(_passwordFocusNode);
                 },
                 validator: (value) {
-                  final emailRegex = RegExp(
-                    '[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+\.[a-zA-Z]{2,8}',
-                  );
-                  if (!emailRegex.hasMatch(value.toString())) {
-                    return 'Enter a valid email address!';
-                  }
+                  //final emailRegex = RegExp(
+                    //'[a-zA-Z0-9._%-]+@[a-zA-Z0-9._%-]+\.[a-zA-Z]{2,8}',
+                  //);
+                  //if (!emailRegex.hasMatch(value.toString())) {
+                    //return 'Enter a valid email address!';
+                  //}
                 },
                 onSaved: (value) {
                   _user.email = value.toString();
@@ -162,11 +164,11 @@ class _SignupState extends State<Signup> {
                 focusNode: _passwordConfirmController,
                 // TODO: add a validator for confirm password
                 validator: (value) {
-                  if (value == null || value.isEmpty)
-                    return 'Please enter a valid value';
-                  if (_user.password != value.toString()) {
-                    return 'The passwords doesn\'t match';
-                  }
+                  //if (value == null || value.isEmpty)
+                    //return 'Please enter a valid value';
+                  //if (_user.password != value.toString()) {
+                    //return 'The passwords doesn\'t match';
+                  //}
                 },
               ),
             ],

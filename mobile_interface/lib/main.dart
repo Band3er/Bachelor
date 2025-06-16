@@ -10,8 +10,19 @@ import 'package:provider/provider.dart';
 import './screens/home_screen.dart';
 import './screens/add_computer_screen.dart';
 import './screens/auth_screen.dart';
+import './screens/card_screen.dart';
+
+import './providers/ComputerData.dart';
+import './providers/Computer.dart';
+
+import 'globals.dart';
+
+
 
 Future main() async {
+
+
+
   WidgetsFlutterBinding.ensureInitialized();
 
 
@@ -23,12 +34,11 @@ Future main() async {
 
   runApp(MyApp(database: database));
 
-
 }
 
 Future<Database> initDatabase() async {
   String path = await getDatabasesPath();
-  debugPrint("The path where the database is: " + path);
+  debugPrint("$time The path where the database is: " + path);
   return openDatabase(
     // Set the path to the database. Note: Using the `join` function from the
     // `path` package is best practice to ensure the path is correctly
@@ -51,7 +61,8 @@ class MyApp extends StatelessWidget {
   final Database database;
 
   final _router = GoRouter(
-    initialLocation: '/auth',
+    //initialLocation: '/auth',
+    initialLocation: '/',
     routes: [
       GoRoute(
         name: 'home',
@@ -68,21 +79,37 @@ class MyApp extends StatelessWidget {
         path: '/add-computer',
         builder: (context, state) => AddComputerScreen(),
       ),
+      GoRoute(
+        name: 'viewCard',
+        path: '/view-card',
+        builder: (context, state) {
+          final pc = state.extra as ComputerData;
+
+          return CardScreen(
+            name: pc.name,
+            macAddress: pc.macAddress,
+            ipAddress: pc.ipAddress,
+            lastOnline: pc.lastOnline.toString(),
+          );
+        },
+      ),
     ],
   );
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return Provider<Database>.value(
-      value: database,
+    return MultiProvider(
+      providers: [
+        Provider<Database>.value(value: database),
+        ChangeNotifierProvider(create: (_) => Computer()), // <- adăugat
+      ],
       child: MaterialApp.router(
         title: 'Wake-on-Lan',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         ),
         routerConfig: _router,
-        //home: AuthScreen(),
       ),
     );
   }

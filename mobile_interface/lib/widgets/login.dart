@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/user.dart';
 
+import '../globals.dart';
+
 class Login extends StatefulWidget {
   final VoidCallback onToggle;
 
@@ -48,9 +50,9 @@ class _LoginState extends State<Login> {
         if(!_form.currentState!.validate())
           return;
         _form.currentState?.save();
-        debugPrint('From the login form: email = ${user.email} || password = ${user.password}');
+        debugPrint('$time From the login form: email = ${user.email} || password = ${user.password}');
         List<Map<String, Object?>> query =  (await database.rawQuery('SELECT email,password FROM users WHERE email=? AND password=?', ['${user.email}', '${user.password}']));
-        debugPrint('From the login query: ' + query.toString());
+        debugPrint('$time From the login query: ' + query.toString());
         for(final {'email':email as String, 'password':password as String} in query){
           User(email: email, password: password);
           if(user.email == email && user.password == password){
@@ -61,7 +63,7 @@ class _LoginState extends State<Login> {
           _showErrorDialog('password or email are wrong!');
         }
       }catch(err){
-        debugPrint('Error from the login database interogation: ' + err.toString());
+        debugPrint('$time Error from the login database interogation: ' + err.toString());
       }
     }
 
@@ -111,9 +113,9 @@ class _LoginState extends State<Login> {
                 ),
                 focusNode: _passwordController,
                 validator: (value) {
-                  if(value == null || value.isEmpty){
-                    return 'Enter a valid value!';
-                  }
+                  //if(value == null || value.isEmpty){
+                    //return 'Enter a valid value!';
+                  //}
                 },
                 onSaved: (value) {
                   _user.password = value.toString();
