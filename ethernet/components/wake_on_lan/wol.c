@@ -41,7 +41,7 @@ setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEna
 struct sockaddr_in dest_addr;
 dest_addr.sin_family = AF_INET;
 dest_addr.sin_port = htons(9);
-inet_pton(AF_INET, "192.168.0.255", &dest_addr.sin_addr.s_addr);
+inet_pton(AF_INET, "255.255.255.255", &dest_addr.sin_addr.s_addr);
 
 
     int err = sendto(sock, magic_packet, sizeof(magic_packet), 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
