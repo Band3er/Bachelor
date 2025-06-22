@@ -6,7 +6,7 @@ class ComputerData {
   final String name;
   final String macAddress;
   final String ipAddress;
-  final int lastOnline;
+  final String lastOnline;
   String doArp = '0';
   String sendWol = '0';
 
@@ -20,12 +20,22 @@ class ComputerData {
 
   factory ComputerData.fromJson(Map<String, dynamic> json) {
     return ComputerData(
-      id: Uuid().v1(),
-      name: json['name'] ?? 'null',
+      id: json['id'] ?? 'null',
+      name: json['name'] ?? '',
       macAddress: json['mac'] as String ?? 'null',
       ipAddress: json['ip'] as String ?? 'null',
-      lastOnline: json['online'] ?? 'null',
+      lastOnline: json['online'] as String ?? 'null',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'mac': macAddress,
+      'ip': ipAddress,
+      'online': lastOnline,
+    };
   }
 }
 

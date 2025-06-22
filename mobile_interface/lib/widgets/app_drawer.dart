@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../screens/BluetoothMacScreen.dart';
+
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
@@ -21,8 +23,8 @@ class AppDrawer extends StatelessWidget {
               Divider(),
               ListTile(
                 leading: Icon(Icons.question_answer),
-                title: Text('Something'),
-                onTap: null,
+                title: Text('Add Bluetooth Device'),
+                onTap: () => context.push('/bt-screen'),
               ),
               Divider(),
               ListTile(

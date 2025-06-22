@@ -17,12 +17,11 @@ class HomeScreen extends StatelessWidget {
     await Provider.of<Computer>(context, listen: false).getData();
   }
 
-  Future<void> _getDataServer(BuildContext context) async {
-    await Provider.of<Computer>(context, listen: false).getData();
-  }
+
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = Provider.of<Computer>(context).isLoading;
     return Scaffold(
       appBar: AppBar(
         title: Text('Wake on Lan page'),
@@ -30,7 +29,7 @@ class HomeScreen extends StatelessWidget {
         actions: [
           IconButton(
             color: Colors.white60,
-            onPressed: () => _sendDataServer(context, {'do_arp': 1, 'send_wol': 0}),
+            onPressed: () => _sendDataServer(context, {'do_arp': 1}),
             //onPressed: () => _getDataServer(context),
             icon: Icon(Icons.refresh),
             tooltip: 'Get PC\'s from LAN',
@@ -38,8 +37,21 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       drawer: AppDrawer(),
-      body: CardsList(),
-      floatingActionButton: FloatingActionButton(onPressed: ()=> context.go('/add-computer'), child: Icon(Icons.add),),
+      body: Stack(children: [CardsList(),
+        if (isLoading)
+          Container(
+            //color: Colors.black54,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                //SizedBox(height: 10),
+                //Text('Data is loading...', style: TextStyle(color: Colors.white)),
+              ],
+            ),
+          ),]),
+      //floatingActionButton: FloatingActionButton(onPressed: ()=> context.go('/add-computer'), child: Icon(Icons.add),),
     );
   }
 }
