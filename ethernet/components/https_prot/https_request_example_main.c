@@ -12,8 +12,11 @@
  *
  * SPDX-FileContributor: 2015-2025 Espressif Systems (Shanghai) CO LTD
  */
-
 #include "https_protocol.h"
+
+#include "freertos/semphr.h"
+
+
 
 extern const uint8_t server_root_cert_pem_start[] asm("_binary_server_root_cert_pem_start");
 extern const uint8_t server_root_cert_pem_end[]   asm("_binary_server_root_cert_pem_end");
@@ -21,6 +24,113 @@ extern const uint8_t server_root_cert_pem_end[]   asm("_binary_server_root_cert_
 extern const uint8_t local_server_cert_pem_start[] asm("_binary_local_server_cert_pem_start");
 extern const uint8_t local_server_cert_pem_end[]   asm("_binary_local_server_cert_pem_end");
 
+int int_to_str(int num, char *buf) {
+    int i = 0;
+
+    if (num == 0) {
+        buf[0] = '0';
+        buf[1] = '\0';
+        return 1;
+    }
+
+    // Procesare cifre în ordine inversă
+    while (num > 0) {
+        buf[i++] = (num % 10) + '0';
+        num /= 10;
+    }
+
+    // Inversăm șirul pentru a obține rezultatul corect
+    for (int j = 0; j < i / 2; j++) {
+        char temp = buf[j];
+        buf[j] = buf[i - j - 1];
+        buf[i - j - 1] = temp;
+    }
+
+    buf[i] = '\0';  // Terminator null
+    return i;       // Returnează numărul de caractere generate
+}
+
+
+void send_post_request(char* data_send) {
+    //const char *json_data = "{\"id\": \"1\", \"do_arp\": 1, \"send_wol\": 1, \"mac\": \"1\"}";
+    ESP_LOGI(TAG, "https_request using crt bundle");
+
+
+    int content_len = strlen(data_send);
+
+
+    esp_tls_cfg_t cfg = {
+        .crt_bundle_attach = esp_crt_bundle_attach,
+    };
+    
+
+    // am schimbat aici
+    //https_get_request(cfg, WEB_URL_POST, POST_REQUEST);
+    //send_post_request(cfg);
+    //https_get_request(cfg, WEB_URL_GET, GET_REQUEST);
+
+    char request[512];
+    snprintf(request, sizeof(request),
+        "POST / HTTP/1.1\r\n"
+        "Host: %s\r\n"
+        "User-Agent: esp-idf/1.0 esp32\r\n"
+        "Content-Type: application/json\r\n"
+        "Content-Length: %d\r\n"
+        "\r\n"
+        "%s",
+        WEB_SERVER, content_len, data_send
+    );
+
+    ESP_LOGI(TAG, "%s", request);
+
+
+    //char request[4096];
+    //int offset = 0;
+//
+    //// 1. Adaugă prima parte statică
+    //const char *part1 = "POST / HTTP/1.1\r\n"
+    //                    "Host: ";
+    //memcpy(request + offset, part1, strlen(part1));
+    //offset += strlen(part1);
+//
+    //// 2. Adaugă host-ul
+    //memcpy(request + offset, WEB_SERVER, strlen(WEB_SERVER));
+    //offset += strlen(WEB_SERVER);
+//
+    //// 3. Continuă cu partea a doua statică
+    //const char *part2 = "\r\nUser-Agent: esp-idf/1.0 esp32\r\n"
+    //                    "Content-Type: application/json\r\n"
+    //                    "Content-Length: ";
+    //memcpy(request + offset, part2, strlen(part2));
+    //offset += strlen(part2);
+//
+    //// 4. Conversie `content_len` în string (folosește funcție proprie)
+    //char content_len_str[12];
+    //int len_digits = int_to_str(content_len, content_len_str);
+    //memcpy(request + offset, content_len_str, len_digits);
+    //offset += len_digits;
+//
+    //// 5. Terminatorul headerelor + payload
+    //const char *part3 = "\r\n\r\n";
+    //memcpy(request + offset, part3, strlen(part3));
+    //offset += strlen(part3);
+//
+    //// 6. Payload-ul JSON
+    //int data_len = strlen(data_send);
+    //memcpy(request + offset, data_send, data_len);
+    //offset += data_len;
+//
+    //// 7. Null-terminate (doar dacă ai nevoie pentru debug)
+    //request[offset] = '\0';
+
+
+    //char *request = "dada";
+  
+    heap_caps_check_integrity_all(true);
+
+    https_get_request(cfg, WEB_URL_POST, request);
+    heap_caps_check_integrity_all(true);
+}
 
 
  void https_get_request(esp_tls_cfg_t cfg, const char *WEB_SERVER_URL, const char *REQUEST)
@@ -63,9 +173,12 @@ extern const uint8_t local_server_cert_pem_end[]   asm("_binary_local_server_cer
         }
     } while (written_bytes < strlen(REQUEST));
 
-    ESP_LOGI(TAG, "Reading HTTP response...");
+    ESP_LOGI(TAG, "Send or not???");
     
+    ESP_LOGI(TAG, "Reading HTTP response...");
+    /*
     do {
+        
         len = sizeof(buf) - 1;
         memset(buf, 0x00, sizeof(buf));
         ret = esp_tls_conn_read(tls, (char *)buf, len);
@@ -82,21 +195,16 @@ extern const uint8_t local_server_cert_pem_end[]   asm("_binary_local_server_cer
 
         len = ret;
         ESP_LOGD(TAG, "%d bytes read", len);
-        /* Print response directly to stdout as it is read */
+         //Print response directly to stdout as it is read 
         for (int i = 0; i < len; i++) {
             putchar(buf[i]);
         }
         putchar('\n'); // JSON output doesn't have a newline at end
-        
-        //pus de mn
-        strcpy(recv_data, strstr(buf, "{"));
-        if(strchr(strstr(recv_data, "{"), '}')){
-            break;
-        }
         // pana aici
+        break;
     } while (1);
     // si asta
-    ESP_LOGI(TAG, "recv_data = %s", recv_data);
+    */
 
 #ifdef CONFIG_EXAMPLE_CLIENT_SESSION_TICKETS
     /* The TLS session is successfully established, now saving the session ctx for reuse */
@@ -109,10 +217,12 @@ extern const uint8_t local_server_cert_pem_end[]   asm("_binary_local_server_cer
 cleanup:
     esp_tls_conn_destroy(tls);
 exit:
-    for (int countdown = 10; countdown >= 0; countdown--) {
+    for (int countdown = 3; countdown >= 0; countdown--) {
         ESP_LOGI(TAG, "%d...", countdown);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        //vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
+    //ESP_LOGE(TAG, "All connection methods failed. Stopping task.");
+    //vTaskDelete(NULL);
 }
 
 #if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE && CONFIG_EXAMPLE_USING_ESP_TLS_MBEDTLS
@@ -122,9 +232,21 @@ static void https_get_request_using_crt_bundle(void)
     esp_tls_cfg_t cfg = {
         .crt_bundle_attach = esp_crt_bundle_attach,
     };
-    https_get_request(cfg, WEB_URL, HOWSMYSSL_REQUEST);
+    // am schimbat aici
+    //https_get_request(cfg, WEB_URL_POST, POST_REQUEST);
+    //send_post_request(cfg);
+    //https_get_request(cfg, WEB_URL_GET, GET_REQUEST);
 }
 #endif // CONFIG_MBEDTLS_CERTIFICATE_BUNDLE && CONFIG_EXAMPLE_USING_ESP_TLS_MBEDTLS
+
+
+
+
+
+
+
+
+
 
  void https_get_request_using_cacert_buf(void)
 {
@@ -133,7 +255,7 @@ static void https_get_request_using_crt_bundle(void)
         .cacert_buf = (const unsigned char *) server_root_cert_pem_start,
         .cacert_bytes = server_root_cert_pem_end - server_root_cert_pem_start,
     };
-    https_get_request(cfg, WEB_URL, HOWSMYSSL_REQUEST);
+    //https_get_request(cfg, WEB_URL_GET, GET_REQUEST);
 }
 
  void https_get_request_using_specified_ciphersuites(void)
@@ -144,16 +266,16 @@ static void https_get_request_using_crt_bundle(void)
     esp_tls_cfg_t cfg = {
         .cacert_buf = (const unsigned char *) server_root_cert_pem_start,
         .cacert_bytes = server_root_cert_pem_end - server_root_cert_pem_start,
-        .ciphersuites_list = server_supported_ciphersuites,
+        //.ciphersuites_list = server_supported_ciphersuites,
     };
 
-    https_get_request(cfg, WEB_URL, HOWSMYSSL_REQUEST);
+    //https_get_request(cfg, WEB_URL_GET, GET_REQUEST);
 
     ESP_LOGI(TAG, "https_request using server unsupported ciphersuites");
 
-    cfg.ciphersuites_list = server_unsupported_ciphersuites;
+    //cfg.ciphersuites_list = server_unsupported_ciphersuites;
 
-    https_get_request(cfg, WEB_URL, HOWSMYSSL_REQUEST);
+    //https_get_request(cfg, WEB_URL_GET, GET_REQUEST);
 #endif
 }
 
@@ -169,7 +291,7 @@ static void https_get_request_using_crt_bundle(void)
     esp_tls_cfg_t cfg = {
         .use_global_ca_store = true,
     };
-    https_get_request(cfg, WEB_URL, HOWSMYSSL_REQUEST);
+    //https_get_request(cfg, WEB_URL_GET, GET_REQUEST);
     esp_tls_free_global_ca_store();
 }
 
@@ -202,9 +324,12 @@ static void https_get_request_using_already_saved_session(const char *url)
 }
 #endif
 
+
  void https_request_task(void *pvparameters)
 {
-    ESP_LOGI(TAG, "Start https_request example");
+    xSemaphoreTake(xSemaphoreHTTPS, portMAX_DELAY);
+    while(1){
+        ESP_LOGI(TAG, "Start https_request example");
 
 #ifdef CONFIG_EXAMPLE_CLIENT_SESSION_TICKETS
     char *server_url = NULL;
@@ -232,11 +357,13 @@ static void https_get_request_using_already_saved_session(const char *url)
     https_get_request_using_crt_bundle();
 #endif
     ESP_LOGI(TAG, "Minimum free heap size: %" PRIu32 " bytes", esp_get_minimum_free_heap_size());
-    https_get_request_using_cacert_buf();
-    https_get_request_using_global_ca_store();
-    https_get_request_using_specified_ciphersuites();
+    //https_get_request_using_cacert_buf();
+    //https_get_request_using_global_ca_store();
+    //https_get_request_using_specified_ciphersuites();
     ESP_LOGI(TAG, "Finish https_request example");
-    vTaskDelete(NULL);
+    //xSemaphoreGive(xSemaphoreARP);
+    //vTaskDelete(NULL);
+    }
 }
 
 //void app_main(void)
