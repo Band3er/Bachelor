@@ -25,9 +25,23 @@
 #include "http_requests.h"
 #include "scan.h"
 
+#include "esp_mac.h"
+
 #include "cJSON.h"
 
+
+#include "https_protocol.h"
+
+#include "app_main.h"
+
+
+
 #define TAG "ethernet_init"
+
+SemaphoreHandle_t xSemaphoreHTTPS;
+
+
+ char recv_data[4096];
 
 //static const char *TAG = "eth_example";
 
@@ -61,8 +75,8 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base,
 }
 
 // !!!semafor
-SemaphoreHandle_t xSemaphore;
 
+static SemaphoreHandle_t xSemaphore;
 
 /** Event handler for IP_EVENT_ETH_GOT_IP */
 static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
@@ -80,121 +94,47 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
 
     xSemaphoreGive(xSemaphore);
 }
+SemaphoreHandle_t xSemaphoreBT;
+
+//extern const uint8_t server_root_cert_pem_start[] asm("_binary_server_root_cert_pem_start");
+//extern const uint8_t server_root_cert_pem_end[]   asm("_binary_server_root_cert_pem_end");
+//
+//extern const uint8_t local_server_cert_pem_start[] asm("_binary_local_server_cert_pem_start");
+//extern const uint8_t local_server_cert_pem_end[]   asm("_binary_local_server_cert_pem_end");
 
 
-
-void vTaskFunction(void *pvParameters){
-
-    esp_netif_t *eth_netif = (esp_netif_t *)pvParameters;
-    char recv_buf[512];
-
-    while(1){
-    http_get(recv_buf);
-
-    cJSON *json_get = cJSON_Parse(recv_buf);
-  
-    ESP_LOGI("Http_Recv", "json_get = %s", cJSON_Print(json_get));
-        
-
-    command command;
-    
-    command.do_arp = cJSON_GetNumberValue(cJSON_GetObjectItem(json_get, "do_arp"));
-    command.send_wol = cJSON_GetNumberValue(cJSON_GetObjectItem(json_get, "send_wol"));
-    char *mac = cJSON_GetStringValue(cJSON_GetObjectItem(json_get, "mac"));
-        char clean_mac[13] = {0};
-if (mac != NULL) {
-    // Creează un buffer temporar pentru MAC-ul fără ":".
-    //char clean_mac[13] = {0};  // 12 caractere + NULL
-    int j = 0;
-
-    for (size_t i = 0; i < strlen(mac) && j < 12; ++i) {
-        if (mac[i] != ':') {
-            if(mac[i] >= 'A' && mac[i] <= 'Z'){
-                mac[i] += 'a' - 'A';
-            }
-            clean_mac[j++] = mac[i];
-        }
-    }
-
-    ESP_LOGI("http", "do_arp = %d, send_wol = %d, mac = %s", command.do_arp, command.send_wol, clean_mac);
-
-    // Dacă vrei să convertești la uint8_t[6], o poți face aici:
-    //uint8_t mac_bin[6];
-    //mac_to_char(clean_mac, mac_bin);  // Presupune că funcția ta e robustă
-    // acum ai mac_bin[] pentru WOL/ARP
-} else {
-    ESP_LOGI("http", "do_arp = %d, send_wol = %d", command.do_arp, command.send_wol);
-}
-
-    
-    //udp_client_task("3065ec9e38ee");
-    //print what have i received from the server
-    if(command.do_arp == 1){
-          uint32_t deviceCounts;
-          deviceInfo *devices;
-          arpScan(eth_netif);
-          devices = getDeviceInfos();
-          deviceCounts = getDeviceCount(); // online devices
-          ESP_LOGI("Http_Post", "deviceCounts = %" PRIu32, deviceCounts);
-          ip4_addr_t dv;
-            char *ip;
-          cJSON* json_array = cJSON_CreateArray();
-          for(size_t i = 0; i <= 254 && devices[i].online; ++i){
-              cJSON* json_obj = cJSON_CreateObject();
-              dv.addr = devices[i].ip;
-              ip = ip4addr_ntoa(&dv);
-              cJSON_AddNumberToObject(json_obj, "online", devices[i].online);
-              cJSON_AddStringToObject(json_obj, "ip", ip);
-              char mac_str[18];
-     
-                snprintf(mac_str, sizeof(mac_str),
-                        "%02X:%02X:%02X:%02X:%02X:%02X",
-                        devices[i].mac[0], devices[i].mac[1], devices[i].mac[2],
-                        devices[i].mac[3], devices[i].mac[4], devices[i].mac[5]);
-            
-
-                ESP_LOGI("http_post", "mac = %s", mac_str);
-                cJSON_AddStringToObject(json_obj, "mac", mac_str);
-
-              ESP_LOGI("Http_Post", "device.online = %d, device.mac = %f", devices[i].online, mac_to_double(devices[i].mac));
-              //ESP_LOGI("Http_post", "device.ip = "PRIu32, devices[i].ip);
-              
-              ESP_LOGI("Http_post", "device.ip: %s", ip);
-              cJSON_AddItemToArray(json_array, json_obj);
-              ESP_LOGI("http_post", "json_obj = %s", cJSON_Print(json_obj));
-              ESP_LOGI("http_post", "json_array = %s", cJSON_Print(json_array));
-              //cJSON_Delete(json_obj);
-          }
-          
-          ESP_LOGI("Http_Post", "json_post = %s", cJSON_Print(json_array));
-          http_post(json_array);
-          cJSON_Delete(json_array);
-          command.do_arp = 0;
-      } else if(command.send_wol == 1) {
-          // set which pc to send the packet
-          //udp_client_task(device->mac); - nu e bun oricum
-          ESP_LOGI("http", "do_arp = %d, send_wol = %d, mac = %s", command.do_arp, command.send_wol, clean_mac);
-        udp_client_task(clean_mac);
-        cJSON *json_response = cJSON_CreateObject();
-        cJSON_AddStringToObject(json_response, "response", "packet sent");
-        http_post(json_response);
-        cJSON_Delete(json_response);
-        command.send_wol = 0;
-      }
-      vTaskDelay(pdMS_TO_TICKS(10000));
-    }
-}
-
-
+#include "comm.h"
+#include "gatts_table_creat_demo.h"
 
 void app_main(void)
 {
     xSemaphore = xSemaphoreCreateBinary();
+    xSemaphoreHTTPS = xSemaphoreCreateBinary();
+    xSemaphoreBT = xSemaphoreCreateBinary();
+
+    add_bluetooth();
+
+    if (xSemaphoreTake(xSemaphoreBT, pdMS_TO_TICKS(10000)) == pdTRUE) {
+        ESP_LOGI(TAG, "Conexiune BT stabilită. Continuăm.");
+        
+    // Aici poți apela http_get() sau alt cod dependent de conexiune
+    } else {
+        ESP_LOGE(TAG, "Timeout: nu s-a obținut BT.");
+    }
+
     // Initialize Ethernet driver
     uint8_t eth_port_cnt = 1;
     esp_eth_handle_t *eth_handles;
+
+    esp_log_level_set("*", ESP_LOG_INFO);
+    esp_log_level_set("mqtt_client", ESP_LOG_VERBOSE);
+    esp_log_level_set("transport_base", ESP_LOG_VERBOSE);
+    esp_log_level_set("transport", ESP_LOG_VERBOSE);
+    esp_log_level_set("outbox", ESP_LOG_VERBOSE);
+
     ESP_ERROR_CHECK(example_eth_init(&eth_handles, &eth_port_cnt));
 
+    ESP_ERROR_CHECK(nvs_flash_init());
     // Initialize TCP/IP network interface aka the esp-netif (should be called only once in application)
     ESP_ERROR_CHECK(esp_netif_init());
     // Create default event loop that running in background
@@ -231,16 +171,38 @@ void app_main(void)
     }
     
     
+
+    if (esp_reset_reason() == ESP_RST_POWERON) {
+        ESP_LOGI(TAG, "Updating time from NVS");
+        ESP_ERROR_CHECK(update_time_from_nvs());
+    }
+
+    const esp_timer_create_args_t nvs_update_timer_args = {
+            .callback = (void *)&fetch_and_store_time_in_nvs,
+    };
+
+    esp_timer_handle_t nvs_update_timer;
+    ESP_ERROR_CHECK(esp_timer_create(&nvs_update_timer_args, &nvs_update_timer));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(nvs_update_timer, TIME_PERIOD));
+
     
 
+    //xTaskCreate(&https_request_task, "https_get_task", 8192, NULL, 5, NULL);
 
     
-    // TODO
+    
+    // VECHI
     //xTaskCreate(&http_get_post_task, "http_get_post_task", 8192, NULL, 5, NULL);
     //xTaskCreate(arp_scan_task, "arp_scan_task", 4096, NULL, 5, NULL);
     //arp_scan_task(eth_handles[0]);
 
     //xTaskCreate(&udp_client_task, "udp_client_task", 4096, NULL, 5, NULL);
+
+
+    // BUN
+    //xSemaphoreGive(xSemaphoreHTTPS);
+
+    //xTaskCreate(&https_request_task, "https_get_task", 8192, NULL, 5, NULL);
     xTaskCreate(&vTaskFunction, "arp_wol_task", 4096, eth_netifs[0], 5, NULL);
 
 
