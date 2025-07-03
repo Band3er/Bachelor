@@ -12,13 +12,12 @@
 
 #include "wol.h"
 
-
-
 void vTaskFunction(void *pvParameters);
 
 typedef struct command {
     int do_arp;
     int send_wol;
+    int is_online;
 }command;
 
 #define TAG "TASK"
