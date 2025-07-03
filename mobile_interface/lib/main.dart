@@ -35,6 +35,8 @@ Future main() async {
 
   runApp(MyApp(database: database));
 
+
+
 }
 
 Future<Database> initDatabase() async {
@@ -68,8 +70,6 @@ class MyApp extends StatelessWidget {
 
 
   final _router = GoRouter(
-    //initialLocation: '/auth',
-    //initialLocation: '/bt-screen',
     initialLocation: '/',
     routes: [
       GoRoute(
@@ -118,7 +118,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<Database>.value(value: database),
-        ChangeNotifierProvider(create: (_) => computerProvider), // <- adăugat
+        ChangeNotifierProvider(create: (_) => computerProvider), // adaugat
       ],
       child: MaterialApp.router(
         title: 'Wake-on-Lan',

@@ -1,6 +1,10 @@
+import 'dart:async';
+
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../globals.dart';
 import '../providers/Computer.dart';
 
 class CardScreen extends StatefulWidget {
@@ -9,9 +13,6 @@ class CardScreen extends StatefulWidget {
   final String macAddress;
   final String ipAddress;
   final String lastOnline;
-
-  //final String do_arp;
-  //final String send_wol;
 
   CardScreen({
     required this.id,
@@ -26,63 +27,102 @@ class CardScreen extends StatefulWidget {
 }
 
 class _CardScreenState extends State<CardScreen> {
-  Future<void> _sendDataServer(BuildContext context, Map<String, dynamic> sendData) async {
-    await Provider.of<Computer>(context, listen: false).sendData(sendData);
-    //await Provider.of<Computer>(context, listen: false).getData();
-  }
-
   late String deviceName;
+
   @override
   void initState() {
     super.initState();
     deviceName = widget.name;
+
+
+
   }
 
   @override
-  Widget build(BuildContext context) {
-    final computerProvider = Provider.of<Computer>(context, listen: false);
-    return Scaffold(
-      appBar: AppBar(title: Text(deviceName), actions: [
-        IconButton(
-          icon: Icon(Icons.edit),
-          onPressed: () {
-            showDialog(
-              context: context,
-              builder: (context) {
-                final controller = TextEditingController();
-                return AlertDialog(
-                  title: Text('Redenumește dispozitivul'),
-                  content: TextField(
-                    controller: controller,
-                    decoration: InputDecoration(hintText: 'Nume nou'),
-                  ),
-                  actions: [
-                    TextButton(
-                      child: Text('Anulează'),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                    TextButton(
-                      child: Text('Salvează'),
-                      onPressed: () {
-                        Provider.of<Computer>(context, listen: false)
-                            .renameComputer(widget.id, controller.text);
-                        setState(() {
-                          deviceName = controller.text;
-                        });
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        )
+  void dispose() {
+    super.dispose();
+  }
 
-      ],),
+
+  String getStatusText(List<bool> history) {
+    if (history.isEmpty) return "Necunoscut";
+
+    bool lastStatus = history.last;
+    if (lastStatus) return "ONLINE";
+
+    // Caută ultima poziție unde a fost online
+    int lastOnlineIndex = history.lastIndexWhere((status) => status == true);
+    if (lastOnlineIndex == -1) return "OFFLINE (fără istoric online)";
+
+    int minuteDiff = history.length - 1 - lastOnlineIndex - 1;
+    if (minuteDiff == 0) return "OFFLINE (acum un minut)";
+    if (minuteDiff == 1) return "OFFLINE (acum două minute)";
+    if (minuteDiff < 60) return "OFFLINE (acum $minuteDiff minute)";
+    if (minuteDiff < 120) return "OFFLINE (acum o oră)";
+    if (minuteDiff < 1440) {
+      final hours = (minuteDiff / 60).floor();
+      return "OFFLINE (acum $hours ore)";
+    }
+    final days = (minuteDiff / 1440).floor();
+    return "OFFLINE (acum $days zile)";
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    final computerProvider = Provider.of<Computer>(context);
+    final currentPc = computerProvider.computers.firstWhere((pc) => pc.id == widget.id);
+    final recentHistory = currentPc.statusHistory.length > 30
+        ? currentPc.statusHistory.sublist(currentPc.statusHistory.length - 30)
+        : currentPc.statusHistory;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(deviceName),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.edit),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  final controller = TextEditingController();
+                  return AlertDialog(
+                    title: Text('Redenumeste dispozitivul'),
+                    content: TextField(
+                      controller: controller,
+                      decoration: InputDecoration(hintText: 'Nume nou'),
+                    ),
+                    actions: [
+                      TextButton(
+                        child: Text('Anuleaza'),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      TextButton(
+                        child: Text('Salveaza'),
+                        onPressed: () {
+                          Provider.of<Computer>(
+                            context,
+                            listen: false,
+                          ).renameComputer(widget.id, controller.text);
+                          setState(() {
+                            deviceName = controller.text;
+                          });
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
       body: Padding(
         padding: EdgeInsets.all(16),
-        child: Column(spacing: MediaQuery.of(context).size.height * 0.03,
+        child: Column(
+          spacing: MediaQuery.of(context).size.height * 0.03,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Icon(
@@ -97,34 +137,155 @@ class _CardScreenState extends State<CardScreen> {
                 ),
               ],
             ),
-            Text('Ip address: ' + widget.ipAddress),
+            Text('Ip address: ' + currentPc.ipAddress),
             Text('Mac address: ' + widget.macAddress),
-            Text('The device was last online: ' + widget.lastOnline),
+            Text(
+              getStatusText(recentHistory),
+              style: TextStyle(
+                color: recentHistory.isNotEmpty && recentHistory.last ? Colors.green : Colors.red,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 ElevatedButton(
-                  onPressed: () => _sendDataServer(context, {'do_arp': 1}),
+                  // aici schimba chestie tresite
+                  onPressed: () async {
+
+                    showAppThemedSnackBar(context, 'Verific status pentru ${widget.name}...');
+                    await Provider.of<Computer>(
+                      context,
+                      listen: false,
+                    ).fetchDeviceStatus({
+                      'is_online': 1,
+                      'id': widget.id,
+                      'ip': widget.ipAddress,
+                    }, context);
+
+                    showAppThemedSnackBar(context, 'Status actualizat pentru ${widget.name}.');
+                  },
                   child: Icon(Icons.refresh),
-                  ),
+                ),
 
                 ElevatedButton(
-                  onPressed: () => _sendDataServer(context, {'send_wol': 1, 'mac': widget.macAddress.replaceAll(':', '').toLowerCase()}),
-                  child: Icon(Icons.power_settings_new),
-                  ),
-                ElevatedButton(onPressed: (){
-                  // Caută obiectul complet după MAC sau IP (sau trimite id dacă îl ai)
-                  final pcToDelete = computerProvider.computers.firstWhere(
-                        (pc) => pc.macAddress == widget.macAddress,
-                    orElse: () => throw Exception('PC not found'),
-                  );
-                  computerProvider.deleteComputer(pcToDelete.id);
-                  context.pop();
-                }, child: Icon(Icons.delete, color: Colors.red,))
+                  onPressed: () async {
 
+                    showAppThemedSnackBar(context, 'Trimitere pachet Wake-on-LAN...');
+                    await Provider.of<Computer>(
+                      context,
+                      listen: false,
+                    ).sendAndReceiveData({
+                      'send_wol': 1,
+                      'mac':
+                          widget.macAddress.replaceAll(':', '').toLowerCase(),
+                    }, context);
+
+                    showAppThemedSnackBar(context, 'Pachet WOL trimis către ${widget.macAddress}');
+                  },
+                  child: Icon(Icons.power_settings_new),
+                ),
+                ElevatedButton(
+                  
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext dialogContext) {
+                        return AlertDialog(
+                          title: const Text('Confirmare'),
+                          content: const Text('Sigur vrei să ștergi acest dispozitiv?'),
+                          actions: [
+                            TextButton(
+                              child: const Text('Anulează'),
+                              onPressed: () {
+                                Navigator.of(dialogContext).pop(); // Închide dialogul
+                              },
+                            ),
+                            TextButton(
+                              child: const Text('Șterge', style: TextStyle(color: Colors.red)),
+                              onPressed: () {
+                                final pcToDelete = computerProvider.computers.firstWhere(
+                                      (pc) => pc.macAddress == widget.macAddress,
+                                  orElse: () => throw Exception('PC not found'),
+                                );
+                                computerProvider.deleteComputer(pcToDelete.id);
+
+                                showAppThemedSnackBar(context, 'Dispozitiv șters: ${pcToDelete.name}');
+                                Navigator.of(dialogContext).pop(); // Închide dialogul
+                                context.pop(); // Revenim la ecranul anterior
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  }, child: Icon(Icons.delete, color: Colors.red,),
+
+                ),
               ],
             ),
+
+
+
+            SizedBox(height: 32),
+            Text("Istoric conectivitate"),
+            SizedBox(
+              height: 150,
+              child: LineChart(
+                LineChartData(
+                  lineBarsData: [
+                    LineChartBarData(
+                      isCurved: false,
+                      spots: recentHistory
+                          .asMap()
+                          .entries
+                          .map((entry) => FlSpot(
+                        entry.key.toDouble(),
+                        entry.value ? 1 : 0,
+                      ))
+                          .toList(),
+
+
+                      color: Colors.blueAccent,
+                      barWidth: 2,
+                      belowBarData: BarAreaData(show: true, color: Colors.blueAccent.withOpacity(0.3)),
+                    ),
+                  ],
+                  titlesData: FlTitlesData(
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, _) {
+                          if (value == 0) return const Text("Off");
+                          if (value == 1) return const Text("On");
+                          return const SizedBox.shrink();
+                        },
+                        interval: 1,
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    topTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                  ),
+
+                  gridData: FlGridData(show: true),
+                  borderData: FlBorderData(show: true),
+                  minY: 0,
+                  maxY: 1,
+                ),
+              ),
+            ),
+
+
           ],
         ),
       ),

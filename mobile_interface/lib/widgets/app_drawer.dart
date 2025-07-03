@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../screens/BluetoothMacScreen.dart';
-
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
@@ -40,7 +38,6 @@ class AppDrawer extends StatelessWidget {
               leading: Icon(Icons.logout),
               title: Text('Logout'),
               onTap: ()=>context.go('/auth'),
-
             ),
             alignment: Alignment.bottomCenter,
           ),

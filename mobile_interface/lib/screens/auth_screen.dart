@@ -27,10 +27,6 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
-
-
-
-  // TODO: error alert if the auth is not as it should
   void _showErrorDialog(String message) {
     showDialog(
       context: context,

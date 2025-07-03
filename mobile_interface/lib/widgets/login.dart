@@ -128,7 +128,7 @@ class _LoginState extends State<Login> {
             child: ElevatedButton(
               onPressed: () {
                 _interogateDatabase(database, _user);
-              }, // TODO: validate if it s ok
+              },
               child: Text("Submit"),
             ),
           ),
@@ -136,7 +136,7 @@ class _LoginState extends State<Login> {
           Padding(
             padding: EdgeInsets.symmetric(vertical: 16.0),
             child: ElevatedButton(
-              onPressed: widget.onToggle, // TODO: validate if it s ok
+              onPressed: widget.onToggle,
               child: Text("Sign up"),
             ),
           ),

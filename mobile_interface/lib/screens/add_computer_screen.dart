@@ -19,7 +19,7 @@ class AddComputerScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(onPressed: () {}, icon: Icon(Icons.arrow_back)),
-        ], // TODO
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -31,7 +31,7 @@ class AddComputerScreen extends StatelessWidget {
                 decoration: InputDecoration(labelText: 'Mac Address'),
                 textInputAction: TextInputAction.next,
                 onFieldSubmitted: (_) {},
-                // TODO
+
                 validator: (value) {
                   if (value!.isEmpty) {
                     return 'Please provide a value';
@@ -46,7 +46,7 @@ class AddComputerScreen extends StatelessWidget {
                 decoration: InputDecoration(labelText: 'IP Address'),
                 textInputAction: TextInputAction.next,
                 onFieldSubmitted: (_) {},
-                // TODO
+
                 validator: (value) {
                   if (value!.isEmpty) {
                     return 'Please provide a value';

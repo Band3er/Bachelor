@@ -70,9 +70,9 @@ class _BluetoothMacScreenState extends State<BluetoothMacScreen> {
       for (BluetoothCharacteristic c in service.characteristics) {
         debugPrint("Service: ${service.uuid} | Char: ${c.uuid}");
 
-        // <<== Schimbă UUID-ul dacă ai definit altul
+        // <<== Schimba UUID-ul dacă ai definit altul
         if (c.uuid.toString().toLowerCase().contains("ff01")) {
-          debugPrint("✅ Găsit characteristic FF01 pentru MAC");
+          debugPrint("Gasit characteristic FF01 pentru MAC");
           targetCharacteristic = c;
 
           await c.setNotifyValue(true);
@@ -90,7 +90,7 @@ class _BluetoothMacScreenState extends State<BluetoothMacScreen> {
       }
     }
 
-    debugPrint("❌ Nu am găsit characteristic FF01");
+    debugPrint("Nu am gasit characteristic FF01");
   }
 
 
@@ -110,10 +110,10 @@ class _BluetoothMacScreenState extends State<BluetoothMacScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('esp32_mac', mac);
 
-    // Oprește notificările și streamul
+    // Oprește notificarile si streamul
     if (targetCharacteristic != null) {
       await targetCharacteristic!.setNotifyValue(false);
-      debugPrint("🔕 Notificările au fost dezactivate.");
+      debugPrint("Notificarile au fost dezactivate.");
     }
 
     await notificationSub?.cancel();
@@ -124,7 +124,7 @@ class _BluetoothMacScreenState extends State<BluetoothMacScreen> {
   void dispose() {
     notificationSub?.cancel();
     scanSub?.cancel();
-    connectedDevice?.disconnect(); // opțional, dacă vrei să te deconectezi
+    connectedDevice?.disconnect(); // optional, daca vrei să te deconectezi
     super.dispose();
   }
 
@@ -140,7 +140,7 @@ class _BluetoothMacScreenState extends State<BluetoothMacScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            context.pop(); // <- merge înapoi în istoricul GoRouter
+            context.pop(); // merge inapoi în istoricul GoRouter
           },
         ),
       ),
@@ -157,7 +157,7 @@ class _BluetoothMacScreenState extends State<BluetoothMacScreen> {
           children: const [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text("Aștept MAC de la ESP32...")
+            Text("Astept MAC de la ESP32...")
           ],
         ),
       ),
