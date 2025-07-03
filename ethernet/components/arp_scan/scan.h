@@ -1,3 +1,5 @@
+// https://github.com/liquidCS/ESP32-NetworkScanner
+
 #pragma once
 #include "stdint.h"
 
@@ -15,7 +17,7 @@
 
 #define TAG "arp_scan"
 
-#define ARPTIMEOUT 100 // adjust to be biiger TODO
+#define ARPTIMEOUT 100 // timpul dintre request uri
 #define ARP_TABLE_SIZE 5
 
 typedef struct deviceInfo{
@@ -28,3 +30,5 @@ void arpScan();
 uint32_t getDeviceCount();
 deviceInfo * getDeviceInfos();
 uint32_t getMaxDevice();
+
+bool checkIPStatus(esp_netif_t *lwip_netif, const char *ip_str_to_check);
