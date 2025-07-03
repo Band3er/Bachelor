@@ -67,24 +67,14 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         msg_id = esp_mqtt_client_subscribe(client, "/queue0", 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-
-        //msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
-        //ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-
-        //msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos0");
-        //ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d", msg_id);
-
-        //msg_id = esp_mqtt_client_unsubscribe(client, "/topic/qos1");
-        //ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d", msg_id);
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
-        break;
+
+    break;
 
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        //msg_id = esp_mqtt_client_publish(client, "/queue0", "data", 0, 0, 0);
-        //ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
         break;
     case MQTT_EVENT_UNSUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
@@ -100,17 +90,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         // return data when it gets some
         char* send_data = strstr(event->data, "{");
         set_mqtt_data(send_data, strlen(send_data));
-        //send_data = NULL;
-        //xSemaphoreGive(xSemaphore_Task);
 
-
-        //char* data = strstr(event->data, "{");
-        //if(data != NULL){
-        //    cJSON *json_get = cJSON_Parse(data);
-        //    ESP_LOGI(TAG, "Datele ce am primit prin parsare: %s", cJSON_Print(json_get));
-        //} else {
-        //    ESP_LOGE(TAG, "Datele nu s-au parsat bine");
-        //}
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -147,28 +127,3 @@ void mqtt_app_start(void)
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     esp_mqtt_client_start(client);
 }
-
-//void app_main(void)
-//{
-//    ESP_LOGI(TAG, "[APP] Startup..");
-//    ESP_LOGI(TAG, "[APP] Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
-//    ESP_LOGI(TAG, "[APP] IDF version: %s", esp_get_idf_version());
-//
-//    esp_log_level_set("*", ESP_LOG_INFO);
-//    esp_log_level_set("mqtt_client", ESP_LOG_VERBOSE);
-//    esp_log_level_set("transport_base", ESP_LOG_VERBOSE);
-//    esp_log_level_set("transport", ESP_LOG_VERBOSE);
-//    esp_log_level_set("outbox", ESP_LOG_VERBOSE);
-//
-//    ESP_ERROR_CHECK(nvs_flash_init());
-//    ESP_ERROR_CHECK(esp_netif_init());
-//    ESP_ERROR_CHECK(esp_event_loop_create_default());
-//
-//    /* This helper function configures Wi-Fi or Ethernet, as selected in menuconfig.
-//     * Read "Establishing Wi-Fi or Ethernet Connection" section in
-//     * examples/protocols/README.md for more information about this function.
-//     */
-//    ESP_ERROR_CHECK(example_connect());
-//
-//    mqtt_app_start();
-//}

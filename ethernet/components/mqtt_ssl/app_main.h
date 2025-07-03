@@ -7,7 +7,6 @@
 #include "nvs_flash.h"
 #include "esp_event.h"
 #include "esp_netif.h"
-//#include "protocol_examples_common.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -32,4 +31,3 @@ char* get_mqtt_data(void);
 bool is_mqtt_data_available(void);
 
 static SemaphoreHandle_t xSemaphore_Task;
-
