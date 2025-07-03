@@ -1,7 +1,3 @@
-
-// the mac addr from the other laptop
-//#define mac 30:65:ec:9e:38:ee
-// 3065ec9e38ee
 #pragma once
 #include <string.h>
 #include <sys/param.h>
