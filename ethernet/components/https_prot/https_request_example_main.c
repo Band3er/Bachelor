@@ -16,380 +16,127 @@
 
 #include "freertos/semphr.h"
 
-
-
 extern const uint8_t server_root_cert_pem_start[] asm("_binary_server_root_cert_pem_start");
-extern const uint8_t server_root_cert_pem_end[]   asm("_binary_server_root_cert_pem_end");
+extern const uint8_t server_root_cert_pem_end[] asm("_binary_server_root_cert_pem_end");
 
 extern const uint8_t local_server_cert_pem_start[] asm("_binary_local_server_cert_pem_start");
-extern const uint8_t local_server_cert_pem_end[]   asm("_binary_local_server_cert_pem_end");
+extern const uint8_t local_server_cert_pem_end[] asm("_binary_local_server_cert_pem_end");
 
-int int_to_str(int num, char *buf) {
+int int_to_str(int num, char *buf)
+{
     int i = 0;
 
-    if (num == 0) {
+    if (num == 0)
+    {
         buf[0] = '0';
         buf[1] = '\0';
         return 1;
     }
 
     // Procesare cifre în ordine inversă
-    while (num > 0) {
+    while (num > 0)
+    {
         buf[i++] = (num % 10) + '0';
         num /= 10;
     }
 
     // Inversăm șirul pentru a obține rezultatul corect
-    for (int j = 0; j < i / 2; j++) {
+    for (int j = 0; j < i / 2; j++)
+    {
         char temp = buf[j];
         buf[j] = buf[i - j - 1];
         buf[i - j - 1] = temp;
     }
 
-    buf[i] = '\0';  // Terminator null
-    return i;       // Returnează numărul de caractere generate
+    buf[i] = '\0'; // Terminator null
+    return i;      // Returnează numărul de caractere generate
 }
 
-
-void send_post_request(char* data_send) {
-    //const char *json_data = "{\"id\": \"1\", \"do_arp\": 1, \"send_wol\": 1, \"mac\": \"1\"}";
+void send_post_request(char *data_send)
+{
     ESP_LOGI(TAG, "https_request using crt bundle");
 
-
     int content_len = strlen(data_send);
-
 
     esp_tls_cfg_t cfg = {
         .crt_bundle_attach = esp_crt_bundle_attach,
     };
-    
-
-    // am schimbat aici
-    //https_get_request(cfg, WEB_URL_POST, POST_REQUEST);
-    //send_post_request(cfg);
-    //https_get_request(cfg, WEB_URL_GET, GET_REQUEST);
 
     char request[512];
     snprintf(request, sizeof(request),
-        "POST / HTTP/1.1\r\n"
-        "Host: %s\r\n"
-        "User-Agent: esp-idf/1.0 esp32\r\n"
-        "Content-Type: application/json\r\n"
-        "Content-Length: %d\r\n"
-        "\r\n"
-        "%s",
-        WEB_SERVER, content_len, data_send
-    );
+             "POST / HTTP/1.1\r\n"
+             "Host: %s\r\n"
+             "User-Agent: esp-idf/1.0 esp32\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %d\r\n"
+             "\r\n"
+             "%s",
+             WEB_SERVER, content_len, data_send);
 
     ESP_LOGI(TAG, "%s", request);
 
-
-    //char request[4096];
-    //int offset = 0;
-//
-    //// 1. Adaugă prima parte statică
-    //const char *part1 = "POST / HTTP/1.1\r\n"
-    //                    "Host: ";
-    //memcpy(request + offset, part1, strlen(part1));
-    //offset += strlen(part1);
-//
-    //// 2. Adaugă host-ul
-    //memcpy(request + offset, WEB_SERVER, strlen(WEB_SERVER));
-    //offset += strlen(WEB_SERVER);
-//
-    //// 3. Continuă cu partea a doua statică
-    //const char *part2 = "\r\nUser-Agent: esp-idf/1.0 esp32\r\n"
-    //                    "Content-Type: application/json\r\n"
-    //                    "Content-Length: ";
-    //memcpy(request + offset, part2, strlen(part2));
-    //offset += strlen(part2);
-//
-    //// 4. Conversie `content_len` în string (folosește funcție proprie)
-    //char content_len_str[12];
-    //int len_digits = int_to_str(content_len, content_len_str);
-    //memcpy(request + offset, content_len_str, len_digits);
-    //offset += len_digits;
-//
-    //// 5. Terminatorul headerelor + payload
-    //const char *part3 = "\r\n\r\n";
-    //memcpy(request + offset, part3, strlen(part3));
-    //offset += strlen(part3);
-//
-    //// 6. Payload-ul JSON
-    //int data_len = strlen(data_send);
-    //memcpy(request + offset, data_send, data_len);
-    //offset += data_len;
-//
-    //// 7. Null-terminate (doar dacă ai nevoie pentru debug)
-    //request[offset] = '\0';
-
-
-    //char *request = "dada";
-  
     heap_caps_check_integrity_all(true);
 
     https_get_request(cfg, WEB_URL_POST, request);
     heap_caps_check_integrity_all(true);
 }
 
-
- void https_get_request(esp_tls_cfg_t cfg, const char *WEB_SERVER_URL, const char *REQUEST)
+#define MAX_HTTPS_RETRIES 3
+void https_get_request(esp_tls_cfg_t cfg, const char *WEB_SERVER_URL, const char *REQUEST)
 {
     char buf[512];
     int ret, len;
-
-    esp_tls_t *tls = esp_tls_init();
-    if (!tls) {
-        ESP_LOGE(TAG, "Failed to allocate esp_tls handle!");
-        goto exit;
-    }
-
-    if (esp_tls_conn_http_new_sync(WEB_SERVER_URL, &cfg, tls) == 1) {
-        ESP_LOGI(TAG, "Connection established...");
-    } else {
-        ESP_LOGE(TAG, "Connection failed...");
-        int esp_tls_code = 0, esp_tls_flags = 0;
-        esp_tls_error_handle_t tls_e = NULL;
-        esp_tls_get_error_handle(tls, &tls_e);
-        /* Try to get TLS stack level error and certificate failure flags, if any */
-        ret = esp_tls_get_and_clear_last_error(tls_e, &esp_tls_code, &esp_tls_flags);
-        if (ret == ESP_OK) {
-            ESP_LOGE(TAG, "TLS error = -0x%x, TLS flags = -0x%x", esp_tls_code, esp_tls_flags);
+    int attemp = 0;
+    while (attemp < MAX_HTTPS_RETRIES)
+    {
+        esp_tls_t *tls = esp_tls_init();
+        if (!tls)
+        {
+            ESP_LOGE(TAG, "Failed to allocate esp_tls handle!");
+            return;
         }
-        goto cleanup;
-    }
-
-    size_t written_bytes = 0;
-    do {
-        ret = esp_tls_conn_write(tls,
-                                 REQUEST + written_bytes,
-                                 strlen(REQUEST) - written_bytes);
-        if (ret >= 0) {
-            ESP_LOGI(TAG, "%d bytes written", ret);
-            written_bytes += ret;
-        } else if (ret != ESP_TLS_ERR_SSL_WANT_READ  && ret != ESP_TLS_ERR_SSL_WANT_WRITE) {
-            ESP_LOGE(TAG, "esp_tls_conn_write  returned: [0x%02X](%s)", ret, esp_err_to_name(ret));
-            goto cleanup;
+        ESP_LOGI(TAG, "Încercare HTTPS %d/%d", attemp + 1, MAX_HTTPS_RETRIES);
+        if (esp_tls_conn_http_new_sync(WEB_SERVER_URL, &cfg, tls) == 1)
+        {
+            ESP_LOGI(TAG, "Connection established...");
         }
-    } while (written_bytes < strlen(REQUEST));
-
-    ESP_LOGI(TAG, "Send or not???");
-    
-    ESP_LOGI(TAG, "Reading HTTP response...");
-    /*
-    do {
-        
-        len = sizeof(buf) - 1;
-        memset(buf, 0x00, sizeof(buf));
-        ret = esp_tls_conn_read(tls, (char *)buf, len);
-
-        if (ret == ESP_TLS_ERR_SSL_WANT_WRITE  || ret == ESP_TLS_ERR_SSL_WANT_READ) {
+        else
+        {
+            ESP_LOGE(TAG, "Connection failed...");
+            int esp_tls_code = 0, esp_tls_flags = 0;
+            esp_tls_error_handle_t tls_e = NULL;
+            esp_tls_get_error_handle(tls, &tls_e);
+            /* Try to get TLS stack level error and certificate failure flags, if any */
+            ret = esp_tls_get_and_clear_last_error(tls_e, &esp_tls_code, &esp_tls_flags);
+            if (ret == ESP_OK)
+            {
+                ESP_LOGE(TAG, "TLS error = -0x%x, TLS flags = -0x%x", esp_tls_code, esp_tls_flags);
+            }
+            esp_tls_conn_destroy(tls);
+            vTaskDelay(pdMS_TO_TICKS(1000 * (attemp + 1)));
+            attemp++;
             continue;
-        } else if (ret < 0) {
-            ESP_LOGE(TAG, "esp_tls_conn_read  returned [-0x%02X](%s)", -ret, esp_err_to_name(ret));
-            break;
-        } else if (ret == 0) {
-            ESP_LOGI(TAG, "connection closed");
-            break;
         }
 
-        len = ret;
-        ESP_LOGD(TAG, "%d bytes read", len);
-         //Print response directly to stdout as it is read 
-        for (int i = 0; i < len; i++) {
-            putchar(buf[i]);
-        }
-        putchar('\n'); // JSON output doesn't have a newline at end
-        // pana aici
-        break;
-    } while (1);
-    // si asta
-    */
-
-#ifdef CONFIG_EXAMPLE_CLIENT_SESSION_TICKETS
-    /* The TLS session is successfully established, now saving the session ctx for reuse */
-    if (save_client_session) {
-        esp_tls_free_client_session(tls_client_session);
-        tls_client_session = esp_tls_get_client_session(tls);
-    }
-#endif
-
-cleanup:
-    esp_tls_conn_destroy(tls);
-exit:
-    for (int countdown = 3; countdown >= 0; countdown--) {
-        ESP_LOGI(TAG, "%d...", countdown);
-        //vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-    //ESP_LOGE(TAG, "All connection methods failed. Stopping task.");
-    //vTaskDelete(NULL);
-}
-
-#if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE && CONFIG_EXAMPLE_USING_ESP_TLS_MBEDTLS
-static void https_get_request_using_crt_bundle(void)
-{
-    ESP_LOGI(TAG, "https_request using crt bundle");
-    esp_tls_cfg_t cfg = {
-        .crt_bundle_attach = esp_crt_bundle_attach,
-    };
-    // am schimbat aici
-    //https_get_request(cfg, WEB_URL_POST, POST_REQUEST);
-    //send_post_request(cfg);
-    //https_get_request(cfg, WEB_URL_GET, GET_REQUEST);
-}
-#endif // CONFIG_MBEDTLS_CERTIFICATE_BUNDLE && CONFIG_EXAMPLE_USING_ESP_TLS_MBEDTLS
-
-
-
-
-
-
-
-
-
-
- void https_get_request_using_cacert_buf(void)
-{
-    ESP_LOGI(TAG, "https_request using cacert_buf");
-    esp_tls_cfg_t cfg = {
-        .cacert_buf = (const unsigned char *) server_root_cert_pem_start,
-        .cacert_bytes = server_root_cert_pem_end - server_root_cert_pem_start,
-    };
-    //https_get_request(cfg, WEB_URL_GET, GET_REQUEST);
-}
-
- void https_get_request_using_specified_ciphersuites(void)
-{
-#if CONFIG_EXAMPLE_USING_ESP_TLS_MBEDTLS
-
-    ESP_LOGI(TAG, "https_request using server supported ciphersuites");
-    esp_tls_cfg_t cfg = {
-        .cacert_buf = (const unsigned char *) server_root_cert_pem_start,
-        .cacert_bytes = server_root_cert_pem_end - server_root_cert_pem_start,
-        //.ciphersuites_list = server_supported_ciphersuites,
-    };
-
-    //https_get_request(cfg, WEB_URL_GET, GET_REQUEST);
-
-    ESP_LOGI(TAG, "https_request using server unsupported ciphersuites");
-
-    //cfg.ciphersuites_list = server_unsupported_ciphersuites;
-
-    //https_get_request(cfg, WEB_URL_GET, GET_REQUEST);
-#endif
-}
-
- void https_get_request_using_global_ca_store(void)
-{
-    esp_err_t esp_ret = ESP_FAIL;
-    ESP_LOGI(TAG, "https_request using global ca_store");
-    esp_ret = esp_tls_set_global_ca_store(server_root_cert_pem_start, server_root_cert_pem_end - server_root_cert_pem_start);
-    if (esp_ret != ESP_OK) {
-        ESP_LOGE(TAG, "Error in setting the global ca store: [%02X] (%s),could not complete the https_request using global_ca_store", esp_ret, esp_err_to_name(esp_ret));
+        size_t written_bytes = 0;
+        do
+        {
+            ret = esp_tls_conn_write(tls,
+                                     REQUEST + written_bytes,
+                                     strlen(REQUEST) - written_bytes);
+            if (ret >= 0)
+            {
+                ESP_LOGI(TAG, "%d bytes written", ret);
+                written_bytes += ret;
+            }
+            else if (ret != ESP_TLS_ERR_SSL_WANT_READ && ret != ESP_TLS_ERR_SSL_WANT_WRITE)
+            {
+                ESP_LOGE(TAG, "esp_tls_conn_write  returned: [0x%02X](%s)", ret, esp_err_to_name(ret));
+            }
+        } while (written_bytes < strlen(REQUEST));
+        esp_tls_conn_destroy(tls);
         return;
     }
-    esp_tls_cfg_t cfg = {
-        .use_global_ca_store = true,
-    };
-    //https_get_request(cfg, WEB_URL_GET, GET_REQUEST);
-    esp_tls_free_global_ca_store();
+
+    ESP_LOGE(TAG, "Eșec HTTPS după %d încercări", MAX_HTTPS_RETRIES);
 }
-
-#ifdef CONFIG_EXAMPLE_CLIENT_SESSION_TICKETS
-static void https_get_request_to_local_server(const char* url)
-{
-    ESP_LOGI(TAG, "https_request to local server");
-    esp_tls_cfg_t cfg = {
-        .cacert_buf = (const unsigned char *) local_server_cert_pem_start,
-        .cacert_bytes = local_server_cert_pem_end - local_server_cert_pem_start,
-        .skip_common_name = true,
-    };
-    save_client_session = true;
-    https_get_request(cfg, url, LOCAL_SRV_REQUEST);
-}
-
-static void https_get_request_using_already_saved_session(const char *url)
-{
-    ESP_LOGI(TAG, "https_request using saved client session");
-    esp_tls_cfg_t cfg = {
-        .client_session = tls_client_session,
-        .cacert_buf = (const unsigned char *) local_server_cert_pem_start,
-        .cacert_bytes = local_server_cert_pem_end - local_server_cert_pem_start,
-        .skip_common_name = true,
-    };
-    https_get_request(cfg, url, LOCAL_SRV_REQUEST);
-    esp_tls_free_client_session(tls_client_session);
-    save_client_session = false;
-    tls_client_session = NULL;
-}
-#endif
-
-
- void https_request_task(void *pvparameters)
-{
-    xSemaphoreTake(xSemaphoreHTTPS, portMAX_DELAY);
-    while(1){
-        ESP_LOGI(TAG, "Start https_request example");
-
-#ifdef CONFIG_EXAMPLE_CLIENT_SESSION_TICKETS
-    char *server_url = NULL;
-#ifdef CONFIG_EXAMPLE_LOCAL_SERVER_URL_FROM_STDIN
-    char url_buf[SERVER_URL_MAX_SZ];
-    if (strcmp(CONFIG_EXAMPLE_LOCAL_SERVER_URL, "FROM_STDIN") == 0) {
-        example_configure_stdin_stdout();
-        fgets(url_buf, SERVER_URL_MAX_SZ, stdin);
-        int len = strlen(url_buf);
-        url_buf[len - 1] = '\0';
-        server_url = url_buf;
-    } else {
-        ESP_LOGE(TAG, "Configuration mismatch: invalid url for local server");
-        abort();
-    }
-    printf("\nServer URL obtained is %s\n", url_buf);
-#else
-    server_url = CONFIG_EXAMPLE_LOCAL_SERVER_URL;
-#endif /* CONFIG_EXAMPLE_LOCAL_SERVER_URL_FROM_STDIN */
-    https_get_request_to_local_server(server_url);
-    https_get_request_using_already_saved_session(server_url);
-#endif
-
-#if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE && CONFIG_EXAMPLE_USING_ESP_TLS_MBEDTLS
-    https_get_request_using_crt_bundle();
-#endif
-    ESP_LOGI(TAG, "Minimum free heap size: %" PRIu32 " bytes", esp_get_minimum_free_heap_size());
-    //https_get_request_using_cacert_buf();
-    //https_get_request_using_global_ca_store();
-    //https_get_request_using_specified_ciphersuites();
-    ESP_LOGI(TAG, "Finish https_request example");
-    //xSemaphoreGive(xSemaphoreARP);
-    //vTaskDelete(NULL);
-    }
-}
-
-//void app_main(void)
-//{
-//    ESP_ERROR_CHECK(nvs_flash_init());
-//    ESP_ERROR_CHECK(esp_netif_init());
-//    ESP_ERROR_CHECK(esp_event_loop_create_default());
-//
-//    /* This helper function configures Wi-Fi or Ethernet, as selected in menuconfig.
-//     * Read "Establishing Wi-Fi or Ethernet Connection" section in
-//     * examples/protocols/README.md for more information about this function.
-//     */
-//    ESP_ERROR_CHECK(example_connect());
-//
-//    if (esp_reset_reason() == ESP_RST_POWERON) {
-//        ESP_LOGI(TAG, "Updating time from NVS");
-//        ESP_ERROR_CHECK(update_time_from_nvs());
-//    }
-//
-//    const esp_timer_create_args_t nvs_update_timer_args = {
-//            .callback = (void *)&fetch_and_store_time_in_nvs,
-//    };
-//
-//    esp_timer_handle_t nvs_update_timer;
-//    ESP_ERROR_CHECK(esp_timer_create(&nvs_update_timer_args, &nvs_update_timer));
-//    ESP_ERROR_CHECK(esp_timer_start_periodic(nvs_update_timer, TIME_PERIOD));
-//
-//    xTaskCreate(&https_request_task, "https_get_task", 8192, NULL, 5, NULL);
-//}

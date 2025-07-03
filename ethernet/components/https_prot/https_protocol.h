@@ -13,7 +13,6 @@
 #include "esp_timer.h"
 #include "nvs_flash.h"
 #include "nvs.h"
-//#include "protocol_examples_common.h"
 #include "esp_sntp.h"
 #include "esp_netif.h"
 
@@ -30,16 +29,11 @@
 #endif
 #include "time_sync.h"
 
-/* Constants that aren't configurable in menuconfig */
-#ifdef CONFIG_EXAMPLE_SSL_PROTO_TLS1_3_CLIENT
-#define WEB_SERVER "tls13.browserleaks.com"
+
+#define WEB_SERVER "b7ebk4fv7rmbccprt4uusoutuu0ybmag.lambda-url.eu-central-1.on.aws"
 #define WEB_PORT "443"
-#define WEB_URL "https://tls13.browserleaks.com/tls"
-#else
-#define WEB_SERVER "ed2nge4mtufmvmbvza3bkodfpq0rbfco.lambda-url.eu-central-1.on.aws"
-#define WEB_PORT "443"
-#define WEB_URL "https://ed2nge4mtufmvmbvza3bkodfpq0rbfco.lambda-url.eu-central-1.on.aws/?id=1"
-#endif
+#define WEB_URL_POST "https://b7ebk4fv7rmbccprt4uusoutuu0ybmag.lambda-url.eu-central-1.on.aws/"
+
 
 #define SERVER_URL_MAX_SZ 256
 
@@ -50,10 +44,6 @@
 /* Timer interval once every day (24 Hours) */
 #define TIME_PERIOD (86400000000ULL)
 
-static const char HOWSMYSSL_REQUEST[] = "GET " WEB_URL " HTTP/1.1\r\n"
-                             "Host: "WEB_SERVER"\r\n"
-                             "User-Agent: esp-idf/1.0 esp32\r\n"
-                             "\r\n";
 
 #ifdef CONFIG_EXAMPLE_CLIENT_SESSION_TICKETS
 static const char LOCAL_SRV_REQUEST[] = "GET " CONFIG_EXAMPLE_LOCAL_SERVER_URL " HTTP/1.1\r\n"
@@ -75,11 +65,11 @@ static const char LOCAL_SRV_REQUEST[] = "GET " CONFIG_EXAMPLE_LOCAL_SERVER_URL "
 
 #if CONFIG_EXAMPLE_USING_ESP_TLS_MBEDTLS
 #if defined(CONFIG_EXAMPLE_SSL_PROTO_TLS1_3_CLIENT)
-static const int server_supported_ciphersuites[] = {MBEDTLS_TLS1_3_AES_256_GCM_SHA384, MBEDTLS_TLS1_3_AES_128_CCM_SHA256, 0};
-static const int server_unsupported_ciphersuites[] = {MBEDTLS_TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256, 0};
+//static const int server_supported_ciphersuites[] = {MBEDTLS_TLS1_3_AES_256_GCM_SHA384, MBEDTLS_TLS1_3_AES_128_CCM_SHA256, 0};
+//static const int server_unsupported_ciphersuites[] = {MBEDTLS_TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256, 0};
 #else
-static const int server_supported_ciphersuites[] = {MBEDTLS_TLS_RSA_WITH_AES_256_GCM_SHA384, MBEDTLS_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, 0};
-static const int server_unsupported_ciphersuites[] = {MBEDTLS_TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256, 0};
+//static const int server_supported_ciphersuites[] = {MBEDTLS_TLS_RSA_WITH_AES_256_GCM_SHA384, MBEDTLS_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, 0};
+//static const int server_unsupported_ciphersuites[] = {MBEDTLS_TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256, 0};
 #endif // CONFIG_EXAMPLE_SSL_PROTO_TLS1_3_CLIENT
 #endif // CONFIG_EXAMPLE_USING_ESP_TLS_MBEDTLS
 
@@ -88,15 +78,19 @@ static esp_tls_client_session_t *tls_client_session = NULL;
 static bool save_client_session = false;
 #endif
 
- void https_get_request(esp_tls_cfg_t cfg, const char *WEB_SERVER_URL, const char *REQUEST);
+void https_get_request(esp_tls_cfg_t cfg, const char *WEB_SERVER_URL, const char *REQUEST);
 
- void https_get_request_using_cacert_buf(void);
+void https_get_request_using_cacert_buf(void);
 
- void https_get_request_using_specified_ciphersuites(void);
+void https_get_request_using_specified_ciphersuites(void);
 
- void https_get_request_using_global_ca_store(void);
+void https_get_request_using_global_ca_store(void);
 
- void https_request_task(void *pvparameters);
+void https_request_task(void *pvparameters);
 
- // astas
- static char recv_data[MAX_RESPONSE_SIZE];
+void send_post_request(char* data_send);
+
+extern char recv_data[4096];
+
+extern SemaphoreHandle_t xSemaphoreHTTPS;
+extern SemaphoreHandle_t xSemaphoreARP;
