@@ -43,8 +43,6 @@ SemaphoreHandle_t xSemaphoreHTTPS;
 
  char recv_data[4096];
 
-//static const char *TAG = "eth_example";
-
 /** Event handler for Ethernet events */
 static void eth_event_handler(void *arg, esp_event_base_t event_base,
                               int32_t event_id, void *event_data)
@@ -74,8 +72,6 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base,
     }
 }
 
-// !!!semafor
-
 static SemaphoreHandle_t xSemaphore;
 
 /** Event handler for IP_EVENT_ETH_GOT_IP */
@@ -96,12 +92,6 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
 }
 SemaphoreHandle_t xSemaphoreBT;
 
-//extern const uint8_t server_root_cert_pem_start[] asm("_binary_server_root_cert_pem_start");
-//extern const uint8_t server_root_cert_pem_end[]   asm("_binary_server_root_cert_pem_end");
-//
-//extern const uint8_t local_server_cert_pem_start[] asm("_binary_local_server_cert_pem_start");
-//extern const uint8_t local_server_cert_pem_end[]   asm("_binary_local_server_cert_pem_end");
-
 
 #include "comm.h"
 #include "gatts_table_creat_demo.h"
@@ -114,13 +104,13 @@ void app_main(void)
 
     add_bluetooth();
 
-    if (xSemaphoreTake(xSemaphoreBT, pdMS_TO_TICKS(10000)) == pdTRUE) {
-        ESP_LOGI(TAG, "Conexiune BT stabilită. Continuăm.");
-        
-    // Aici poți apela http_get() sau alt cod dependent de conexiune
-    } else {
-        ESP_LOGE(TAG, "Timeout: nu s-a obținut BT.");
-    }
+    //if (xSemaphoreTake(xSemaphoreBT, pdMS_TO_TICKS(10000)) == pdTRUE) {
+    //    ESP_LOGI(TAG, "Conexiune BT stabilită. Continuăm.");
+    //    
+    //// Aici poți apela http_get() sau alt cod dependent de conexiune
+    //} else {
+    //    ESP_LOGE(TAG, "Timeout: nu s-a obținut BT.");
+    //}
 
     // Initialize Ethernet driver
     uint8_t eth_port_cnt = 1;
@@ -185,43 +175,5 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_timer_create(&nvs_update_timer_args, &nvs_update_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(nvs_update_timer, TIME_PERIOD));
 
-    
-
-    //xTaskCreate(&https_request_task, "https_get_task", 8192, NULL, 5, NULL);
-
-    
-    
-    // VECHI
-    //xTaskCreate(&http_get_post_task, "http_get_post_task", 8192, NULL, 5, NULL);
-    //xTaskCreate(arp_scan_task, "arp_scan_task", 4096, NULL, 5, NULL);
-    //arp_scan_task(eth_handles[0]);
-
-    //xTaskCreate(&udp_client_task, "udp_client_task", 4096, NULL, 5, NULL);
-
-
-    // BUN
-    //xSemaphoreGive(xSemaphoreHTTPS);
-
-    //xTaskCreate(&https_request_task, "https_get_task", 8192, NULL, 5, NULL);
     xTaskCreate(&vTaskFunction, "arp_wol_task", 4096, eth_netifs[0], 5, NULL);
-
-
-
-
-#if CONFIG_EXAMPLE_ETH_DEINIT_AFTER_S >= 0
-    // For demonstration purposes, wait and then deinit Ethernet network
-    vTaskDelay(pdMS_TO_TICKS(CONFIG_EXAMPLE_ETH_DEINIT_AFTER_S * 1000));
-    ESP_LOGI(TAG, "stop and deinitialize Ethernet network...");
-    // Stop Ethernet driver state machine and destroy netif
-    for (int i = 0; i < eth_port_cnt; i++) {
-        ESP_ERROR_CHECK(esp_eth_stop(eth_handles[i]));
-        ESP_ERROR_CHECK(esp_eth_del_netif_glue(eth_netif_glues[i]));
-        esp_netif_destroy(eth_netifs[i]);
-    }
-    esp_netif_deinit();
-    ESP_ERROR_CHECK(example_eth_deinit(eth_handles, eth_port_cnt));
-    ESP_ERROR_CHECK(esp_event_handler_unregister(IP_EVENT, IP_EVENT_ETH_GOT_IP, got_ip_event_handler));
-    ESP_ERROR_CHECK(esp_event_handler_unregister(ETH_EVENT, ESP_EVENT_ANY_ID, eth_event_handler));
-    ESP_ERROR_CHECK(esp_event_loop_delete_default());
-#endif // EXAMPLE_ETH_DEINIT_AFTER_S > 0
 }

@@ -40,6 +40,16 @@
         "cstdio": "c",
         "cstring": "c",
         "typeinfo": "c",
-        "esp_log.h": "c"
+        "esp_log.h": "c",
+        "cjson.h": "c",
+        "semphr.h": "c",
+        "https_protocol.h": "c",
+        "mqtt_client.h": "c",
+        "string.h": "c",
+        "condition_variable": "c",
+        "ctime": "c",
+        "mutex": "c",
+        "time_sync.h": "c",
+        "esp_sntp.h": "c"
     }
 }
