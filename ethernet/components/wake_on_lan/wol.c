@@ -1,60 +1,57 @@
 #include "wol.h"
 
-#define WOL_PORT 9
-#define MAC_STRING_LEN 12
-#define MAC_BYTES 6
-#define MAGIC_PACKET_LEN 102
-#define BROADCAST_IP "255.255.255.255"
 
-void udp_client_task(char mac_str[MAC_STRING_LEN + 1]) {
-    uint8_t magic_packet[MAGIC_PACKET_LEN] = {0};
-    uint8_t target_mac[MAC_BYTES] = {0};
-    char byte_str[3] = {0}; // 2 cifre hex + terminator null
 
-    // Headerul pachetului magic: 6 octeti FF
-    memset(magic_packet, 0xFF, 6);
+//#define HOST_IP_ADDR CONFIG_EXAMPLE_PORT
+//#define mac 30:65:ec:9e:38:ee
 
-    // Convertirea stringului MAC în bytes binari
-    for (int i = 0; i < MAC_STRING_LEN; i += 2) {
-        byte_str[0] = mac_str[i];
-        byte_str[1] = mac_str[i + 1];
-        target_mac[i / 2] = (uint8_t)strtol(byte_str, NULL, 16);
-    }
+/**
+* using port 9
+*   as to https://superuser.com/questions/295325/does-it-matter-what-udp-port-a-wol-signal-is-sent-to
+*/
+#define PORT 9
 
-    // Pachetul magic conține 16 repetari ale adresei MAC
-    for (int i = 0; i < 16; ++i) {
-        memcpy(&magic_packet[6 + i * MAC_BYTES], target_mac, MAC_BYTES);
-    }
+void udp_client_task(char mac[13]){
+    
+//char mac[13] = "3065ec9e38ee";
+uint8_t magic_packet[102];
+memset(magic_packet, 0xFF, 6);
 
-    // Crearea socketului UDP
-    int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (sock < 0) {
-        ESP_LOGE(TAG, "Eroare la crearea socketului UDP");
-        return;
-    }
-    int broadcast = 1;
-    // Activarea optiunii de broadcast
-    setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
+uint8_t target_mac[6];
+char slice[3] = {0}; // trebuie 3 pentru terminator null
 
-    // Configurarea adresei de destinatie
-    struct sockaddr_in dest_addr = {
-        .sin_family = AF_INET,
-        .sin_port = htons(WOL_PORT)
-    };
-    inet_pton(AF_INET, BROADCAST_IP, &dest_addr.sin_addr.s_addr);
+for (int i = 0; i < 12; i += 2) {
+    slice[0] = mac[i];
+    slice[1] = mac[i + 1];
+    target_mac[i / 2] = (uint8_t)strtol(slice, NULL, 16);
+}
 
-    // Trimiterea pachetului
-    int err = sendto(sock, magic_packet, sizeof(magic_packet), 0,
-                     (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+for (int i = 0; i < 16; i++) {
+    memcpy(&magic_packet[6 + i * 6], target_mac, 6);
+}
+
+int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+if (sock < 0) {
+    ESP_LOGE(TAG, "Unable to create socket");
+}
+
+int broadcastEnable = 1;
+setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable));
+
+struct sockaddr_in dest_addr;
+dest_addr.sin_family = AF_INET;
+dest_addr.sin_port = htons(9);
+inet_pton(AF_INET, "255.255.255.255", &dest_addr.sin_addr.s_addr);
+
+
+    int err = sendto(sock, magic_packet, sizeof(magic_packet), 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
     if (err < 0) {
-        ESP_LOGE(TAG, "Trimiterea pachetului WoL a esuat. Cod eroare: %d", errno);
+        ESP_LOGE(TAG, "Failed to send Wake_on_lan packet err: %d", errno);
     } else {
-        ESP_LOGI(TAG, "Pachet Wake-on-LAN trimis cu succes");
+        ESP_LOGI(TAG, "Wake-on-Lan packet sent successfully");
     }
+    //vTaskDelay(2000 / portTICK_PERIOD_MS);
 
-    // Pauza scurta pentru a asigura finalizarea transmiterii
-    vTaskDelay(pdMS_TO_TICKS(2000));
 
-    // inchiderea socketului
-    close(sock);
+close(sock);    
 }

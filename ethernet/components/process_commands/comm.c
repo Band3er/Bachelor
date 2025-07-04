@@ -3,6 +3,7 @@
 #include "time_sync.h"
 #include "esp_bt_device.h"
 #include "esp_sntp.h"
+#include "app_main.h"
 
 double mac_to_double(uint8_t mac[6]){
     uint64_t val = 0;

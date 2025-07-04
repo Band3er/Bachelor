@@ -22,7 +22,7 @@
 
 #include "wol.h"
 #include "ethernet_init.h"
-#include "http_requests.h"
+//#include "http_requests.h"
 #include "scan.h"
 
 #include "esp_mac.h"
