@@ -13,7 +13,7 @@ String getStatusText(List<bool> history) {
   int lastOnlineIndex = history.lastIndexWhere((s) => s == true);
   if (lastOnlineIndex == -1) return "OFFLINE (fără istoric online)";
 
-  int minuteDiff = history.length - 1 - lastOnlineIndex;
+  int minuteDiff = history.length - 1 - lastOnlineIndex - 1;
   if (minuteDiff == 0) return "OFFLINE (acum un minut)";
   if (minuteDiff == 1) return "OFFLINE (acum două minute)";
   if (minuteDiff < 60) return "OFFLINE (acum $minuteDiff minute)";

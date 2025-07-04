@@ -47,7 +47,7 @@ class Computer with ChangeNotifier {
   //Map<String, Timer> _pingTimers = {}; // stocam timer-ele active per device
 
   void startPingAll(BuildContext context) {
-    Timer.periodic(Duration(seconds: 10), (timer) async {
+    Timer.periodic(Duration(seconds: 30), (timer) async {
       for (var pc in _computers) {
         //try {
           await fetchDeviceStatus({
@@ -123,6 +123,8 @@ class Computer with ChangeNotifier {
       '/', //
       {'esp_mac': mac}, // facem GET dupa adresa MAC
     );
+
+    debugPrint('GET Request with url: $url');
 
     await Future.delayed(Duration(seconds: 7));
 

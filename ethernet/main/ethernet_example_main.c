@@ -94,10 +94,17 @@ SemaphoreHandle_t xSemaphoreBT;
 
 
 #include "comm.h"
+#include "app_main.h"
 #include "gatts_table_creat_demo.h"
+SemaphoreHandle_t xSemaphoreStartApp;
+SemaphoreHandle_t xSemaphoreMQTT;
 
 void app_main(void)
 {
+    xSemaphoreStartApp = xSemaphoreCreateBinary();
+
+    xSemaphoreMQTT = xSemaphoreCreateBinary();
+
     xSemaphore = xSemaphoreCreateBinary();
     xSemaphoreHTTPS = xSemaphoreCreateBinary();
     xSemaphoreBT = xSemaphoreCreateBinary();
@@ -174,6 +181,10 @@ void app_main(void)
     esp_timer_handle_t nvs_update_timer;
     ESP_ERROR_CHECK(esp_timer_create(&nvs_update_timer_args, &nvs_update_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(nvs_update_timer, TIME_PERIOD));
+
+    mqtt_app_start();
+
+    xSemaphoreGive(xSemaphoreStartApp);
 
     xTaskCreate(&vTaskFunction, "arp_wol_task", 4096, eth_netifs[0], 5, NULL);
 }

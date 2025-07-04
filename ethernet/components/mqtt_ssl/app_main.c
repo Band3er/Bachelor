@@ -45,6 +45,7 @@ static void log_error_if_nonzero(const char *message, int error_code)
         ESP_LOGE(TAG, "Last error %s: 0x%x", message, error_code);
     }
 }
+extern SemaphoreHandle_t xSemaphoreMQTT;
 
 /*
  * @brief Event handler registered to receive MQTT events
@@ -67,6 +68,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         msg_id = esp_mqtt_client_subscribe(client, "/queue0", 0);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+        xSemaphoreGive(xSemaphoreMQTT);
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -110,6 +112,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
 void mqtt_app_start(void)
 {
+    
   const esp_mqtt_client_config_t mqtt_cfg = {
     .broker.address.uri = "mqtts://avbtetc4ahvoo-ats.iot.eu-central-1.amazonaws.com:8883",
     .broker.verification.certificate = (const char *)server_cert_pem_start,
