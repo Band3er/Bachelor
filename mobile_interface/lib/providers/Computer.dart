@@ -1,40 +1,54 @@
 import 'dart:async';
 import 'dart:convert' as convert;
 import 'dart:io';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ComputerData.dart';
-
 import '../globals.dart';
-
-import 'package:flutter/services.dart' show rootBundle;
+import 'SessionStorageService.dart';
 
 class Computer with ChangeNotifier {
-
-
   List<ComputerData> _computers = [];
+  final String userId;
 
   bool _isLoading = false;
+  static bool _certsPrepared = false;
+  static String? rootCAPath;
+  static String? certPath;
+  static String? keyPath;
 
   bool get isLoading => _isLoading;
 
   List<ComputerData> get computers => _computers;
+  late final SessionStorageService session;
 
-  Future<void> sendAndReceiveData(Map<String, dynamic> sendInfo, BuildContext context) async {
+  Computer({required this.userId}) {
+    session = SessionStorageService(userId: userId);
+  }
+
+  Future<void> sendAndReceiveData(
+    Map<String, dynamic> sendInfo,
+    BuildContext context,
+  ) async {
     _isLoading = true;
     notifyListeners();
+
+    final mac = await session.getMacAddress();
+    if (mac == null || mac.isEmpty) {
+      showAppThemedSnackBar(context, 'MAC ESP32 nu este asociat. Conecteaza-te la Bluetooth.');
+      return; // ieși din functie, nu trimite nimic
+    }
 
     // Trimit comanda MQTT catre ESP32
     await sendData(sendInfo);
 
-    // Astept putin pentru a permite ESP32 să trimita datele la AWS
+    // Astept putin pentru a permite ESP32 sa trimita datele la AWS
     await Future.delayed(Duration(seconds: 7));
 
     // Apelez fetchDevices() pentru a incarca datele primite
@@ -44,35 +58,25 @@ class Computer with ChangeNotifier {
     notifyListeners();
   }
 
-  //Map<String, Timer> _pingTimers = {}; // stocam timer-ele active per device
-
   void startPingAll(BuildContext context) {
-    Timer.periodic(Duration(seconds: 30), (timer) async {
+    Timer.periodic(Duration(minutes: 1), (timer) async {
       for (var pc in _computers) {
         //try {
-          await fetchDeviceStatus({
-            'is_online': 1,
-            'id': pc.id,
-            'ip': pc.ipAddress,
-          }, context);
-        //} catch (e) {
-          // Dacă nu răspunde, considerăm offline
-          //pc.statusHistory.add(false);
-          //debugPrint('$time NU am primit niciun raspuns');
-          //notifyListeners();
-        //}
+        await fetchDeviceStatus({
+          'is_online': 1,
+          'id': pc.id,
+          'ip': pc.ipAddress,
+        }, context);
       }
     });
   }
 
-
-
-
-  Future<void> fetchDeviceStatus(Map<String, dynamic> sendInfo, BuildContext context) async{
-
+  Future<void> fetchDeviceStatus(
+    Map<String, dynamic> sendInfo,
+    BuildContext context,
+  ) async {
     var deviceIP = sendInfo['ip'];
     debugPrint('$time Fetch device status with mac: $deviceIP');
-
 
     final url = Uri.https(
       'cdqsgosjon7pvb2awqag5si2ie0copdt.lambda-url.eu-central-1.on.aws',
@@ -82,41 +86,44 @@ class Computer with ChangeNotifier {
 
     // Trimit comanda MQTT catre ESP32
     await sendData(sendInfo);
-
     await Future.delayed(Duration(seconds: 3));
-
     final response = await http.get(url);
 
-      if(response.statusCode == 200) {
-        final jsonList = convert.jsonDecode(response.body) as List;
-
-
-
-        //ComputerData newPc = ComputerData.fromJson(jsonList as Map<String, dynamic>);
-
-        _updateComputers(jsonList);
-
-
-        debugPrint('$time the new PC with the data ${response.body}');
-
-        //final index = _computers.indexWhere((pc) => pc.id == newPc.id);
-        //if (index != -1) {
-          //_computers[index].ipAddress = newPc.ipAddress;
-          //_computers[index].macAddress = newPc.macAddress;
-         // _computers[index].lastOnline = newPc.lastOnline;
-        //}
-      } else {
-        debugPrint('$time Error ${response.statusCode} and the body ${response.body}');
-
-        showAppThemedSnackBar(context, 'Eroare la verificarea statusului (${response.statusCode})');
+    if (response.statusCode == 200) {
+      final jsonList = convert.jsonDecode(response.body) as List;
+      _updateComputers(jsonList);
+      debugPrint('$time the new PC with the data ${response.body}');
+    } else {
+      debugPrint(
+        '$time Error ${response.statusCode} and the body ${response.body}',
+      );
+      showAppThemedSnackBar(
+        context,
+        'Eroare la verificarea statusului (${response.statusCode})',
+      );
     }
   }
 
-  Future<void> fetchDevices(BuildContext context) async{
+  Future<void> fetchDevices(BuildContext context) async {
     debugPrint('$time getData called');
 
-    final prefs = await SharedPreferences.getInstance();
-    final mac = prefs.getString('esp32_mac');
+    if (userId.isEmpty) {
+      debugPrint('$time user_id nu este setat in SharedPreferences.');
+      showAppThemedSnackBar(context, 'Eroare: utilizator necunoscut.');
+      return;
+    }
+
+    final mac = await session.getMacAddress();
+    if (mac == null || mac.isEmpty) {
+      debugPrint('$time MAC address nu este disponibil!');
+      showAppThemedSnackBar(
+        context,
+        'MAC ESP32 lipsa. Asociaza mai intai un dispozitiv Bluetooth.',
+      );
+      return;
+    }
+
+    debugPrint('$time MAC obtinut din sesiune: $mac');
 
     final url = Uri.https(
       'cdqsgosjon7pvb2awqag5si2ie0copdt.lambda-url.eu-central-1.on.aws',
@@ -129,12 +136,10 @@ class Computer with ChangeNotifier {
     await Future.delayed(Duration(seconds: 7));
 
     var retries = 0;
-    while(retries < 3){
+    while (retries < 3) {
       final response = await http.get(url);
-      if(response.statusCode == 200){
-
+      if (response.statusCode == 200) {
         final jsonList = convert.jsonDecode(response.body) as List;
-
         bool dataIsDifferent = _isDataDifferent(jsonList);
 
         if (dataIsDifferent) {
@@ -144,10 +149,14 @@ class Computer with ChangeNotifier {
         }
 
         debugPrint('$time data received, data: ${response.body}');
-      } else{
-        debugPrint('$time no data received, server response ${response.statusCode}');
-
-        showAppThemedSnackBar(context, 'Eroare la primirea dispozitivelor (${response.statusCode})');
+      } else {
+        debugPrint(
+          '$time no data received, server response ${response.statusCode}',
+        );
+        showAppThemedSnackBar(
+          context,
+          'Eroare la primirea dispozitivelor (${response.statusCode})',
+        );
       }
 
       // astept o secunda
@@ -163,28 +172,17 @@ class Computer with ChangeNotifier {
   }
 
   Future<void> _saveToPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = _computers.map((pc) => pc.toJson()).toList();
-    prefs.setString('computers', convert.jsonEncode(jsonList));
+    await session.saveComputers(_computers);
   }
 
   Future<void> loadFromPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('computers');
-    if (jsonString != null) {
-      final jsonList = convert.jsonDecode(jsonString) as List;
-      _computers = List<ComputerData>.from(
-        jsonList.map((json) => ComputerData.fromJson(json)),
-        growable: true,
-      );
-
-      notifyListeners();
-    }
+    final jsonList = await session.getComputers();
+    _computers = List<ComputerData>.from(
+      jsonList.map((json) => ComputerData.fromJson(json)),
+      growable: true,
+    );
+    notifyListeners();
   }
-  static bool _certsPrepared = false;
-  static String? rootCAPath;
-  static String? certPath;
-  static String? keyPath;
 
   Future<void> prepareCertificates() async {
     if (_certsPrepared) return;
@@ -206,7 +204,6 @@ class Computer with ChangeNotifier {
     _certsPrepared = true;
   }
 
-
   Future<void> sendData(Map<String, dynamic> sendInfo) async {
     final client = MqttServerClient(
       'avbtetc4ahvoo-ats.iot.eu-central-1.amazonaws.com',
@@ -218,11 +215,11 @@ class Computer with ChangeNotifier {
 
     await prepareCertificates();
 
-    client.securityContext = SecurityContext()
-      ..setTrustedCertificates(rootCAPath!)
-      ..useCertificateChain(certPath!)
-      ..usePrivateKey(keyPath!);
-
+    client.securityContext =
+        SecurityContext()
+          ..setTrustedCertificates(rootCAPath!)
+          ..useCertificateChain(certPath!)
+          ..usePrivateKey(keyPath!);
 
     // Set the correct MQTT protocol for mosquito
     client.setProtocolV311();
@@ -238,30 +235,28 @@ class Computer with ChangeNotifier {
         .withWillMessage('My Will message')
         .startClean() // Non persistent session for testing
         .withWillQos(MqttQos.atLeastOnce);
-    print('EXAMPLE::client connecting....');
+    debugPrint('$time MQTT::client connecting....');
     client.connectionMessage = connMess;
-
     try {
       await client.connect();
     } on Exception catch (e) {
-      print('EXAMPLE::client exception - $e');
+      debugPrint('$time MQTT::client exception - $e');
       client.disconnect();
     }
 
     // Check we are connected
     if (client.connectionStatus!.state == MqttConnectionState.connected) {
-      print('EXAMPLE::Mosquitto client connected');
+      debugPrint('$time MQTT::Mosquitto client connected');
     } else {
-      print(
-        'EXAMPLE::ERROR Mosquitto client connection failed - disconnecting, state is ${client.connectionStatus!.state}',
+      debugPrint(
+        '$time MQTT::ERROR Mosquitto client connection failed - disconnecting, state is ${client.connectionStatus!.state}',
       );
       client.disconnect();
-      //exit(-1);
     }
 
     client.published!.listen((MqttPublishMessage message) {
-      print(
-        'EXAMPLE::Published notification:: topic is ${message.variableHeader!.topicName}, with Qos ${message.header!.qos}',
+      debugPrint(
+        '$time MQTT::Published notification:: topic is ${message.variableHeader!.topicName}, with Qos ${message.header!.qos}',
       );
     });
 
@@ -271,24 +266,22 @@ class Computer with ChangeNotifier {
     var dataa = convert.jsonEncode(sendInfo);
     builder1.addString(dataa.toString());
 
-    print('EXAMPLE:: <<<< PUBLISH >>>>');
+    print('$time MQTT:: <<<< PUBLISH >>>>');
     client.publishMessage(topic1, MqttQos.atLeastOnce, builder1.payload!);
 
-    // Așteaptă puțin să se trimită
+    // Așteapta putin sa se trimita
     await Future.delayed(Duration(seconds: 1));
 
-    // Închide conexiunea
+    // inchide conexiunea
     client.disconnect();
   }
 
-  /// The subscribed callback
   void onSubscribed(String topic) {
-    print('EXAMPLE::Subscription confirmed for topic $topic');
+    print('MQTT::Subscription confirmed for topic $topic');
   }
 
-  /// The unsolicited disconnect callback
   void onDisconnected() {
-    print('EXAMPLE::OnDisconnected client callback - Client disconnection');
+    print('MQTT::OnDisconnected client callback - Client disconnection');
   }
 
   void renameComputer(String id, String newName) {
@@ -311,7 +304,8 @@ class Computer with ChangeNotifier {
       final newPc = ComputerData.fromJson(json);
 
       final existingPcIndex = _computers.indexWhere((pc) => pc.id == newPc.id);
-      if (existingPcIndex == -1) return true; // nu exista device ul stocat local
+      if (existingPcIndex == -1)
+        return true; // nu exista device ul stocat local
 
       final existingPc = _computers[existingPcIndex];
       if (newPc.lastOnline != existingPc.lastOnline ||
@@ -320,13 +314,11 @@ class Computer with ChangeNotifier {
         return true; // date modificate
       }
     }
-
     return false;
   }
 
-
   void _updateComputers(List jsonList) {
-    // creează o copie sigură a listei curente
+    // creează o copie sigura a listei curente
     List<ComputerData> newList = List<ComputerData>.from(_computers);
 
     for (var json in jsonList) {
@@ -343,9 +335,10 @@ class Computer with ChangeNotifier {
         }
         newList[index].statusHistory.add(isOnline);
       } else {
-        final name = newPc.name.trim().isEmpty
-            ? 'Device - ${newList.length + 1}'
-            : newPc.name;
+        final name =
+            newPc.name.trim().isEmpty
+                ? 'Device - ${newList.length + 1}'
+                : newPc.name;
         final newDevice = ComputerData(
           id: newPc.id,
           name: name,
@@ -356,41 +349,16 @@ class Computer with ChangeNotifier {
         if (newDevice.statusHistory.length >= 1440) {
           newDevice.statusHistory.removeAt(0);
         }
-        newList.add(newDevice); // AICI adaugi într-o listă sigură
+        newList.add(newDevice);
       }
     }
-
     _computers = newList;
     _saveToPrefs();
     notifyListeners();
   }
 
-
-
-  bool statusDevice(int isOnline, String ipAddress){
-    //getData();
-
-    int minutes = 0, hours = 0, days = 0, month = 0;
-
-    if(isOnline == 1){
-      return true;
-    } else if(isOnline == 0){
-      minutes += 1;
-      if(minutes == 60){
-        minutes = 0;
-        hours += 1;
-      }
-      if(hours == 24){
-        hours = 0;
-        days += 1;
-      }
-      if(days == 30){
-        days = 0;
-        month += 1;
-      }
-      return false;
-    }
-    return false;
+  void fromJSON(List<Map<String, dynamic>> jsonList) {
+    _computers = jsonList.map((json) => ComputerData.fromJson(json)).toList();
+    notifyListeners();
   }
-
 }

@@ -1,12 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
-
 class ComputerData {
   final String id;
   final String name;
-   final String macAddress;
-    String ipAddress;
-    String lastOnline;
+  final String macAddress;
+  String ipAddress;
+  String lastOnline;
   List<bool> statusHistory;
 
   ComputerData({
@@ -16,18 +13,15 @@ class ComputerData {
     required this.ipAddress,
     required this.lastOnline,
     List<bool>? statusHistory,
-  }): statusHistory = statusHistory ?? [];
-
-
-
+  }) : statusHistory = statusHistory ?? [];
 
   factory ComputerData.fromJson(Map<String, dynamic> json) {
     return ComputerData(
       id: json['id'] ?? 'null',
       name: json['name'] ?? '',
-      macAddress: json['mac'] as String ?? 'null',
-      ipAddress: json['ip'] as String ?? 'null',
-      lastOnline: json['online'] as String ?? 'null',
+      macAddress: json['mac'].toString(),
+      ipAddress: json['ip'].toString(),
+      lastOnline: json['online'].toString(),
       statusHistory: List<bool>.from(json['statusHistory'] ?? []),
     );
   }

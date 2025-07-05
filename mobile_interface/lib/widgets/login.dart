@@ -1,146 +1,120 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../providers/user.dart';
-
-import '../globals.dart';
+import '../providers/AuthService.dart';
+import '../providers/Computer.dart';
 
 class Login extends StatefulWidget {
   final VoidCallback onToggle;
 
-  Login({super.key, required this.onToggle});
+  Login({required this.onToggle});
 
   @override
-  State<Login> createState() => _LoginState();
+  _LoginState createState() => _LoginState();
 }
 
 class _LoginState extends State<Login> {
-  var _user = User(email: '', password: '');
+  final _formKey = GlobalKey<FormState>();
+  String _email = '';
+  String _password = '';
+  bool _loading = false;
 
-  final _passwordController = FocusNode();
+  void _submit() async {
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) return;
 
-  final _form = GlobalKey<FormState>();
+    _formKey.currentState?.save();
+    setState(() => _loading = true);
 
-  @override
-  Widget build(BuildContext context) {
-    final database = Provider.of<Database>(context, listen: false);
+    final result = await AuthService.login(email: _email, password: _password);
 
-    void _showErrorDialog(String message) {
-      showDialog(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-          title: Text('An error Occured!'),
-          content: Text(message),
-          actions: [
-            OutlinedButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Okay'),
-            ),
-          ],
-        ),
-      );
+    setState(() => _loading = false);
+
+    if (result['success']) {
+      final userId = result['id'];
+
+      // Salvam userId in SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_id', userId);
+
+      final computerProvider = Computer(userId: userId);
+      await computerProvider.loadFromPrefs(); // incarcare date locale
+
+      context.go('/', extra: computerProvider);
+    } else {
+      _showError(result['error']);
     }
+  }
 
-    Future<void> _interogateDatabase(Database database, User user) async {
-      try{
-
-        if(!_form.currentState!.validate())
-          return;
-        _form.currentState?.save();
-        debugPrint('$time From the login form: email = ${user.email} || password = ${user.password}');
-        List<Map<String, Object?>> query =  (await database.rawQuery('SELECT email,password FROM users WHERE email=? AND password=?', ['${user.email}', '${user.password}']));
-        debugPrint('$time From the login query: ' + query.toString());
-        for(final {'email':email as String, 'password':password as String} in query){
-          User(email: email, password: password);
-          if(user.email == email && user.password == password){
-            context.go('/');
-          }
-        }
-        if(query.isEmpty){
-          _showErrorDialog('password or email are wrong!');
-        }
-      }catch(err){
-        debugPrint('$time Error from the login database interogation: ' + err.toString());
-      }
-    }
-
-    return Form(
-      autovalidateMode: AutovalidateMode.always,
-      onChanged: () {
-        Form.of(primaryFocus!.context!).save();
-      },
-      key: _form,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("email", textAlign: TextAlign.left),
-              TextFormField(
-                decoration: InputDecoration(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.sizeOf(context).width / 3,
-                  ),
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter the email',
-                ),
-                textInputAction: TextInputAction.next,
-                onFieldSubmitted: (_) {
-                  FocusScope.of(context).requestFocus(_passwordController);
-                },
-                validator: (value) {
-                  if(value == null || value.isEmpty){
-                    return 'Enter a valid value!';
-                  }
-                },
-                onSaved: (value) {
-                  _user.email = value.toString();
-                },
-              ),
-              SizedBox(height: 50.0),
-              Text("password"),
-              TextFormField(
-                decoration: InputDecoration(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.sizeOf(context).width / 3,
-                  ),
-                  border: OutlineInputBorder(),
-                  hintText: 'Enter the password',
-                ),
-                focusNode: _passwordController,
-                validator: (value) {
-                  //if(value == null || value.isEmpty){
-                    //return 'Enter a valid value!';
-                  //}
-                },
-                onSaved: (value) {
-                  _user.password = value.toString();
-                },
+  void _showError(String message) {
+    showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: Text('Eroare la autentificare'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('OK'),
               ),
             ],
           ),
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.0),
-            child: ElevatedButton(
-              onPressed: () {
-                _interogateDatabase(database, _user);
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Form(
+        key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction, // validare live
+        child: Column(
+          children: [
+            TextFormField(
+              key: ValueKey('email'),
+              decoration: InputDecoration(labelText: 'Email'),
+              keyboardType: TextInputType.emailAddress,
+              onSaved: (value) => _email = value!.trim(),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Introduceti un email.';
+                }
+                final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                if (!emailRegex.hasMatch(value.trim())) {
+                  return 'Email invalid. Exemplu: nume@email.com';
+                }
+                return null;
               },
-              child: Text("Submit"),
             ),
-          ),
-          Text("Not registered?"),
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.0),
-            child: ElevatedButton(
+            TextFormField(
+              key: ValueKey('password'),
+              decoration: InputDecoration(labelText: 'Parola'),
+              obscureText: true,
+              onSaved: (value) => _password = value!,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Introduceti o parola.';
+                }
+                if (value.length < 6) {
+                  return 'Parola trebuie sa aiba cel putin 6 caractere.';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
+            if (_loading)
+              CircularProgressIndicator()
+            else
+              ElevatedButton(onPressed: _submit, child: Text('Autentificare')),
+            TextButton(
               onPressed: widget.onToggle,
-              child: Text("Sign up"),
+              child: Text('Nu ai cont? Inregistreaza-te'),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

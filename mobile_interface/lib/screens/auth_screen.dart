@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-
 import '../widgets/login.dart';
 import '../widgets/signup.dart';
 
-enum AuthState{Login, Signup}
+enum AuthState { Login, Signup }
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -14,35 +13,17 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-
   AuthState _authState = AuthState.Login;
 
-
-
-
-
-  void _toggleAuthStates(){
+  void _toggleAuthStates() {
     setState(() {
-      _authState = _authState == AuthState.Login ? AuthState.Signup : AuthState.Login;
+      _authState =
+          _authState == AuthState.Login ? AuthState.Signup : AuthState.Login;
     });
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text('An error Occured!'),
-            content: Text(message),
-            actions: [OutlinedButton(onPressed: null, child: Text('Okay'))],
-          ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-
-
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -50,10 +31,23 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.computer, color: Colors.blueAccent,size: MediaQuery.sizeOf(context).width / 4,),
+                Text(
+                  'Bine ai venit!',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueGrey,
+                  ),
+                ),
+                SizedBox(height: 16),
+                Icon(
+                  Icons.computer,
+                  color: Colors.blueAccent,
+                  size: MediaQuery.sizeOf(context).width / 4,
+                ),
                 SizedBox(height: MediaQuery.sizeOf(context).width / 8),
-                _authState == AuthState.Login ?
-                    Login(onToggle: _toggleAuthStates)
+                _authState == AuthState.Login
+                    ? Login(onToggle: _toggleAuthStates)
                     : Signup(onToggle: _toggleAuthStates),
               ],
             ),

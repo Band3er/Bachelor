@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/Computer.dart';
 
-// Poți extrage această funcție într-un fișier separat (ex: utils/status_helper.dart)
 String getStatusText(List<bool> history) {
   if (history.isEmpty) return "Necunoscut";
 
@@ -11,13 +11,12 @@ String getStatusText(List<bool> history) {
   if (lastStatus) return "ONLINE";
 
   int lastOnlineIndex = history.lastIndexWhere((s) => s == true);
-  if (lastOnlineIndex == -1) return "OFFLINE (fără istoric online)";
+  if (lastOnlineIndex == -1) return "OFFLINE (fara istoric online)";
 
   int minuteDiff = history.length - 1 - lastOnlineIndex - 1;
   if (minuteDiff == 0) return "OFFLINE (acum un minut)";
-  if (minuteDiff == 1) return "OFFLINE (acum două minute)";
   if (minuteDiff < 60) return "OFFLINE (acum $minuteDiff minute)";
-  if (minuteDiff < 120) return "OFFLINE (acum o oră)";
+  if (minuteDiff < 120) return "OFFLINE (acum o ora)";
   if (minuteDiff < 1440) {
     final hours = (minuteDiff / 60).floor();
     return "OFFLINE (acum $hours ore)";
@@ -37,9 +36,10 @@ class CardsList extends StatelessWidget {
       itemCount: computers.length,
       itemBuilder: (context, index) {
         final pc = computers[index];
-        final recentHistory = pc.statusHistory.length > 30
-            ? pc.statusHistory.sublist(pc.statusHistory.length - 30)
-            : pc.statusHistory;
+        final recentHistory =
+            pc.statusHistory.length > 30
+                ? pc.statusHistory.sublist(pc.statusHistory.length - 30)
+                : pc.statusHistory;
         final isOnline = recentHistory.isNotEmpty && recentHistory.last;
         final statusText = getStatusText(recentHistory);
 
@@ -63,12 +63,18 @@ class CardsList extends StatelessWidget {
                 ),
               ],
             ),
-            onTap: () =>
-              context.push('/view-card', extra: pc)
-             // <-- acum e corect plasat
+            onTap: () {
+              final computerProvider = Provider.of<Computer>(
+                context,
+                listen: false,
+              );
+              context.push(
+                '/view-card?id=${pc.id}&name=${pc.name}&ip=${pc.ipAddress}&mac=${pc.macAddress}&lastOnline=${pc.lastOnline}',
+                extra: computerProvider,
+              );
+            },
           ),
         );
-
       },
     );
   }
