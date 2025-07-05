@@ -15,8 +15,6 @@ extern const uint8_t client_key_pem_end[] asm("_binary_client_key_end");
 extern const uint8_t server_cert_pem_start[] asm("_binary_aws_root_crt_start");
 extern const uint8_t server_cert_pem_end[] asm("_binary_aws_root_crt_end");
 
-//static SemaphoreHandle_t xSemaphore;
-
 static char mqtt_received_data[256];
 static bool mqtt_data_available = false;
 
@@ -37,7 +35,6 @@ char* get_mqtt_data(void){
 bool is_mqtt_data_available(void){
     return mqtt_data_available;
 }
-
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {

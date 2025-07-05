@@ -567,6 +567,4 @@ void add_bluetooth(void)
     if (local_mtu_ret){
         ESP_LOGE(GATTS_TABLE_TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
     }
-
-    
 }

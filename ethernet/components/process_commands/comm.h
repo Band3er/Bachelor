@@ -1,15 +1,16 @@
 #pragma once
 #include <string.h>
-#include "esp_netif.h"
-
-#include "cJSON.h"
-
+#include "esp_sntp.h"
+#include "time_sync.h"
+#include "esp_bt_device.h"
+#include "esp_sntp.h"
 #include "app_main.h"
-
+#include "freertos/semphr.h"
+#include "esp_netif.h"
+#include "cJSON.h"
+#include "app_main.h"
 #include "scan.h"
-
 #include "https_protocol.h"
-
 #include "wol.h"
 
 void vTaskFunction(void *pvParameters);

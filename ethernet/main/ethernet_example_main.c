@@ -7,7 +7,6 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 
-
 #include <stdio.h>
 #include "esp_netif.h"
 #include "lwip/dns.h"
@@ -15,33 +14,24 @@
 #include "lwip/ip4.h"
 #include "lwip/ip_addr.h"
 #include "lwip/inet.h"
-
 #include "freertos/semphr.h"
-
 #include "esp_eth_driver.h"
-
 #include "wol.h"
 #include "ethernet_init.h"
-//#include "http_requests.h"
 #include "scan.h"
-
 #include "esp_mac.h"
-
 #include "cJSON.h"
-
-
 #include "https_protocol.h"
-
 #include "app_main.h"
-
-
+#include "comm.h"
+#include "app_main.h"
+#include "gatts_table_creat_demo.h"
 
 #define TAG "ethernet_init"
 
-SemaphoreHandle_t xSemaphoreHTTPS;
-
-
- char recv_data[4096];
+static SemaphoreHandle_t xSemaphore;
+SemaphoreHandle_t xSemaphoreStartApp;
+SemaphoreHandle_t xSemaphoreMQTT;
 
 /** Event handler for Ethernet events */
 static void eth_event_handler(void *arg, esp_event_base_t event_base,
@@ -72,8 +62,6 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base,
     }
 }
 
-static SemaphoreHandle_t xSemaphore;
-
 /** Event handler for IP_EVENT_ETH_GOT_IP */
 static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
                                  int32_t event_id, void *event_data)
@@ -90,34 +78,14 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
 
     xSemaphoreGive(xSemaphore);
 }
-SemaphoreHandle_t xSemaphoreBT;
-
-
-#include "comm.h"
-#include "app_main.h"
-#include "gatts_table_creat_demo.h"
-SemaphoreHandle_t xSemaphoreStartApp;
-SemaphoreHandle_t xSemaphoreMQTT;
 
 void app_main(void)
 {
     xSemaphoreStartApp = xSemaphoreCreateBinary();
-
     xSemaphoreMQTT = xSemaphoreCreateBinary();
-
     xSemaphore = xSemaphoreCreateBinary();
-    xSemaphoreHTTPS = xSemaphoreCreateBinary();
-    xSemaphoreBT = xSemaphoreCreateBinary();
 
     add_bluetooth();
-
-    //if (xSemaphoreTake(xSemaphoreBT, pdMS_TO_TICKS(10000)) == pdTRUE) {
-    //    ESP_LOGI(TAG, "Conexiune BT stabilită. Continuăm.");
-    //    
-    //// Aici poți apela http_get() sau alt cod dependent de conexiune
-    //} else {
-    //    ESP_LOGE(TAG, "Timeout: nu s-a obținut BT.");
-    //}
 
     // Initialize Ethernet driver
     uint8_t eth_port_cnt = 1;
@@ -130,7 +98,6 @@ void app_main(void)
     esp_log_level_set("outbox", ESP_LOG_VERBOSE);
 
     ESP_ERROR_CHECK(example_eth_init(&eth_handles, &eth_port_cnt));
-
     ESP_ERROR_CHECK(nvs_flash_init());
     // Initialize TCP/IP network interface aka the esp-netif (should be called only once in application)
     ESP_ERROR_CHECK(esp_netif_init());
@@ -141,7 +108,6 @@ void app_main(void)
     esp_eth_netif_glue_handle_t eth_netif_glues[eth_port_cnt];
 
     // Create instance(s) of esp-netif for Ethernet(s)
-
     // Use ESP_NETIF_DEFAULT_ETH when just one Ethernet interface is used and you don't need to modify
     // default esp-netif configuration parameters.
     esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
@@ -150,25 +116,19 @@ void app_main(void)
     // Attach Ethernet driver to TCP/IP stack
     ESP_ERROR_CHECK(esp_netif_attach(eth_netifs[0], eth_netif_glues[0]));
 
-
     // Register user defined event handers
     ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, &eth_event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &got_ip_event_handler, NULL));
-
     ESP_ERROR_CHECK(esp_eth_start(eth_handles[0]));
 
     // Start Ethernet driver state machine
-
-    // ast pana se atribuie ip, daca nu, dupa 10s trece pe ramura de fals
+    // asteapta pana se atribuie ip, daca nu, dupa 10s trece pe ramura de fals
     if (xSemaphoreTake(xSemaphore, pdMS_TO_TICKS(10000)) == pdTRUE) {
-        ESP_LOGI("eth", "Conexiune Ethernet stabilită. Continuăm.");
-    // Aici poți apela http_get() sau alt cod dependent de conexiune
+        ESP_LOGI("eth", "Conexiune Ethernet stabilita. Continuam.");
     } else {
-        ESP_LOGE("eth", "Timeout: nu s-a obținut IP de la Ethernet.");
+        ESP_LOGE("eth", "Timeout: nu s-a obtinut IP de la Ethernet.");
     }
     
-    
-
     if (esp_reset_reason() == ESP_RST_POWERON) {
         ESP_LOGI(TAG, "Updating time from NVS");
         ESP_ERROR_CHECK(update_time_from_nvs());
