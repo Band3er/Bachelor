@@ -8,7 +8,7 @@ import os
 import base64
 
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('Users')  # asigură-te că tabela există
+table = dynamodb.Table('Users')  # asigura-te ca tabela exista
 
 def hash_password(password: str, salt: bytes = None):
     if not salt:
@@ -30,7 +30,7 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'email si password sunt necesare'})
             }
 
-        # Verificare dacă userul deja există
+        # Verificare daca userul deja exista
         existing = table.scan(
             FilterExpression='email = :e',
             ExpressionAttributeValues={':e': email}
@@ -39,7 +39,7 @@ def lambda_handler(event, context):
         if existing['Items']:
             return {
                 'statusCode': 409,
-                'body': json.dumps({'error': 'Email deja înregistrat'})
+                'body': json.dumps({'error': 'Email deja inregistrat'})
             }
 
         user_id = str(uuid.uuid4())

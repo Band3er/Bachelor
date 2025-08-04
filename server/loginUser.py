@@ -27,10 +27,10 @@ def lambda_handler(event, context):
         if not email or not password:
             return {
                 'statusCode': 400,
-                'body': json.dumps({'error': 'email și password sunt necesare'})
+                'body': json.dumps({'error': 'email si password sunt necesare'})
             }
 
-        # Caută utilizatorul după email
+        # Cauta utilizatorul după email
         result = table.scan(
             FilterExpression='email = :e',
             ExpressionAttributeValues={':e': email}
@@ -39,7 +39,7 @@ def lambda_handler(event, context):
         if not result['Items']:
             return {
                 'statusCode': 401,
-                'body': json.dumps({'error': 'Email sau parolă incorectă'})
+                'body': json.dumps({'error': 'Email sau parola incorecta'})
             }
 
         user = result['Items'][0]
@@ -48,13 +48,13 @@ def lambda_handler(event, context):
         if not verify_password(password, stored_hash):
             return {
                 'statusCode': 401,
-                'body': json.dumps({'error': 'Email sau parolă incorectă'})
+                'body': json.dumps({'error': 'Email sau parola incorecta'})
             }
 
         return {
             'statusCode': 200,
             'body': json.dumps({
-                'message': 'Autentificare reușită',
+                'message': 'Autentificare reusita',
                 'id': user['id'],
                 'esp_mac': user.get('esp_mac', None)
             })

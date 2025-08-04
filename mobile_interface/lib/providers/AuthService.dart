@@ -3,9 +3,9 @@ import 'package:http/http.dart' as http;
 
 class AuthService {
   static const String registerUrl =
-      'https://pzdxxlq4odnu2rkdp4kugrgioe0vqdqo.lambda-url.eu-central-1.on.aws/';
+      '';
   static const String loginUrl =
-      'https://ov3usn3yupmfplbmypp3y56ezy0pfyii.lambda-url.eu-central-1.on.aws/';
+      '';
 
   static Future<Map<String, dynamic>> signup({
     required String email,

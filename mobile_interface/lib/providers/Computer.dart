@@ -59,7 +59,7 @@ class Computer with ChangeNotifier {
   }
 
   void startPingAll(BuildContext context) {
-    Timer.periodic(Duration(minutes: 1), (timer) async {
+    Timer.periodic(Duration(seconds: 20), (timer) async {
       for (var pc in _computers) {
         //try {
         await fetchDeviceStatus({
@@ -79,7 +79,7 @@ class Computer with ChangeNotifier {
     debugPrint('$time Fetch device status with mac: $deviceIP');
 
     final url = Uri.https(
-      'cdqsgosjon7pvb2awqag5si2ie0copdt.lambda-url.eu-central-1.on.aws',
+      '',
       '/', //
       {'device_ip': deviceIP}, // facem GET dupa id
     );
@@ -126,7 +126,7 @@ class Computer with ChangeNotifier {
     debugPrint('$time MAC obtinut din sesiune: $mac');
 
     final url = Uri.https(
-      'cdqsgosjon7pvb2awqag5si2ie0copdt.lambda-url.eu-central-1.on.aws',
+      '',
       '/', //
       {'esp_mac': mac}, // facem GET dupa adresa MAC
     );
@@ -206,7 +206,7 @@ class Computer with ChangeNotifier {
 
   Future<void> sendData(Map<String, dynamic> sendInfo) async {
     final client = MqttServerClient(
-      'avbtetc4ahvoo-ats.iot.eu-central-1.amazonaws.com',
+      '',
       '',
     );
 

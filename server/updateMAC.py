@@ -13,7 +13,7 @@ def lambda_handler(event, context):
         if not user_id or not esp_mac:
             return {
                 'statusCode': 400,
-                'body': json.dumps({'error': 'id și esp_mac sunt necesare'})
+                'body': json.dumps({'error': 'id si esp_mac sunt necesare'})
             }
 
         table.update_item(

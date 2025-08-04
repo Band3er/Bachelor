@@ -104,7 +104,7 @@ class _BluetoothMacScreenState extends State<BluetoothMacScreen> {
 
   Future<void> _sendMacToServer(String mac, String userId) async {
     final url = Uri.parse(
-      'https://dpbhtmymjj3modxqg6w26nsnpi0ndfld.lambda-url.eu-central-1.on.aws',
+      '',
     );
 
     final response = await http.put(

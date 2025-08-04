@@ -36,7 +36,7 @@ class AppDrawer extends StatelessWidget {
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.remove(
                     'user_id',
-                  ); // doar userul curent este „delogat”
+                  ); // doar userul curent este delogat
                   context.go('/auth');
                 },
               ),
