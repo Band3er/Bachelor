@@ -28,7 +28,7 @@ idf.py monitor
 
 ---
 
-### 🔹 Option 2: Visual Studio Code Extension (Recommended for Beginners)
+### Option 2: Visual Studio Code Extension (Recommended for Beginners)
 
 1. Install [Visual Studio Code](https://code.visualstudio.com/)
 2. Open the **Extensions** tab and install the official **Espressif IDF** extension
@@ -53,7 +53,7 @@ Inside there you will find:
 - `client.key` – Private key  
 - `aws_root.crt` – Amazon Root CA certificate
 
-### 🌐 Step 4: Add your AWS MQTT endpoint
+### Add your AWS MQTT endpoint
 
 Inside `mqtt.c`:
 

@@ -42,6 +42,14 @@ This project aims to provide a secure, remote system capable of waking up person
 - Remote wake-up worked consistently on Windows 10 and Ubuntu 22.04 clients.
 - All components ran concurrently under FreeRTOS without memory leakage or watchdog resets.
 
+## Flutter Mobile Interface
+
+For a more user-friendly experience, a mobile interface has been developed using Flutter. This interface allows:
+- Authentication with email/password (via AWS Lambda)
+- Sending commands (WoL, ARP scan) to AWS
+- Viewing the status of available devices on the network 
+
+
 ## Prerequisites
 
 - ESP32 with Ethernet support (e.g., WROVER-Kit + LAN8720)
