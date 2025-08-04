@@ -1,32 +1,84 @@
-# _Sample project_
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+## ESP-IDF Installation
 
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
+You can install ESP-IDF in two main ways:
 
+### Option 1: Command Line Interface (CLI)
 
+```bash
+# Clone the ESP-IDF repository
+git clone --recursive https://github.com/espressif/esp-idf.git
+cd esp-idf
+git checkout v5.2.1  # Use the latest stable version
 
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
+# Run the installer
+./install.sh esp32
 
-## Example folder contents
-
-The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
-
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`
-files that provide set of directives and instructions describing the project's source files and targets
-(executable, library, or both). 
-
-Below is short explanation of remaining files in the project folder.
-
+# Export environment variables
+. export.sh
 ```
-├── CMakeLists.txt
-├── main
-│   ├── CMakeLists.txt
-│   └── main.c
-└── README.md                  This is the file you are currently reading
+
+After installation, use the following commands to build and run your project:
+
+```bash
+idf.py build
+idf.py flash
+idf.py monitor
 ```
-Additionally, the sample project contains Makefile and component.mk files, used for the legacy Make based build system. 
-They are not used or needed when building with CMake and idf.py.
+
+---
+
+### 🔹 Option 2: Visual Studio Code Extension (Recommended for Beginners)
+
+1. Install [Visual Studio Code](https://code.visualstudio.com/)
+2. Open the **Extensions** tab and install the official **Espressif IDF** extension
+3. Follow the guided installation steps for:
+   - ESP-IDF version
+   - Python interpreter
+   - Required toolchains
+4. Open your project folder and use the GUI to build, flash, and monitor the device
+
+More details: [ESP-IDF VSCode Extension](https://github.com/espressif/vscode-esp-idf-extension)
+
+---
+
+## Adding AWS IoT Certificates (for MQTT)
+
+If this project uses secure MQTT communication (e.g., with AWS IoT Core), you need to add the following certificates to your project.
+
+### Go to `components/mqtt_ssl/` directory
+
+Inside there you will find:
+- `client.crt` – Device certificate  
+- `client.key` – Private key  
+- `aws_root.crt` – Amazon Root CA certificate
+
+### 🌐 Step 4: Add your AWS MQTT endpoint
+
+Inside `mqtt.c`:
+
+```c
+.broker.address.uri = ""
+```
+
+and then, from `https_protocol`:
+
+```c
+#define WEB_SERVER ""
+#define WEB_PORT ""
+#define WEB_URL_POST ""
+```
+
+---
+
+## Building the Project
+
+After setting up ESP-IDF and configuring your certificates and endpoint:
+
+```bash
+idf.py build
+idf.py -p port flash monitor
+```
+
+Make sure your Ethernet connection is established  
+MQTT connects successfully to AWS IoT  
