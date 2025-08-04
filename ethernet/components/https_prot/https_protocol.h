@@ -29,9 +29,13 @@
 #endif
 #include "time_sync.h"
 
-#define WEB_SERVER "b7ebk4fv7rmbccprt4uusoutuu0ybmag.lambda-url.eu-central-1.on.aws"
-#define WEB_PORT "443"
-#define WEB_URL_POST "https://b7ebk4fv7rmbccprt4uusoutuu0ybmag.lambda-url.eu-central-1.on.aws/"
+// **********************************
+// include the path for the web server, if you are using https, default port is 443
+// you can find in the documentation how to configure (esp-idf)
+// **********************************
+#define WEB_SERVER ""
+#define WEB_PORT ""
+#define WEB_URL_POST ""
 
 #define SERVER_URL_MAX_SZ 256
 

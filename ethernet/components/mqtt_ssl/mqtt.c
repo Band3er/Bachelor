@@ -6,7 +6,7 @@
    software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
    CONDITIONS OF ANY KIND, either express or implied.
 */
-#include "app_main.h"
+#include "mqtt.h"
 
 extern const uint8_t client_cert_pem_start[] asm("_binary_client_crt_start");
 extern const uint8_t client_cert_pem_end[] asm("_binary_client_crt_end");
@@ -17,6 +17,7 @@ extern const uint8_t server_cert_pem_end[] asm("_binary_aws_root_crt_end");
 
 static char mqtt_received_data[256];
 static bool mqtt_data_available = false;
+extern SemaphoreHandle_t xSemaphoreMQTT;
 
 void set_mqtt_data(const char* data, size_t len){
     if(len >= sizeof(mqtt_received_data))
@@ -42,7 +43,6 @@ static void log_error_if_nonzero(const char *message, int error_code)
         ESP_LOGE(TAG, "Last error %s: 0x%x", message, error_code);
     }
 }
-extern SemaphoreHandle_t xSemaphoreMQTT;
 
 /*
  * @brief Event handler registered to receive MQTT events
@@ -111,7 +111,10 @@ void mqtt_app_start(void)
 {
     
   const esp_mqtt_client_config_t mqtt_cfg = {
-    .broker.address.uri = "mqtts://avbtetc4ahvoo-ats.iot.eu-central-1.amazonaws.com:8883",
+    // ********************
+    // the path for the mqtt
+    // ******************** 
+    .broker.address.uri = "",
     .broker.verification.certificate = (const char *)server_cert_pem_start,
     .credentials = {
       .authentication = {

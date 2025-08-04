@@ -17,7 +17,7 @@
 
 #define TAG "arp_scan"
 
-#define ARPTIMEOUT 100 // timpul dintre request uri
+#define ARPTIMEOUT 100 // Time between the requests
 #define ARP_TABLE_SIZE 5
 
 typedef struct deviceInfo{

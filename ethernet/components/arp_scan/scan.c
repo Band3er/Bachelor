@@ -71,15 +71,10 @@ void arpScan(esp_netif_t *lwip_netif)
     esp_ip4_addr_t target_ipp;
     target_ipp.addr = ip_info.netmask.addr & ip_info.ip.addr;
     esp_ip4addr_ntoa(&target_ipp, char_target, IP4ADDR_STRLEN_MAX);
-    ESP_LOGI(TAG, "target_ipp.addr = %s", char_target);
     esp_ip4addr_ntoa(&ip_info.netmask, char_target, IP4ADDR_STRLEN_MAX);
-    ESP_LOGI(TAG, "ip_info.netmask = %s", char_target);
     esp_ip4addr_ntoa(&ip_info.netmask, char_target, IP4ADDR_STRLEN_MAX);
-    ESP_LOGI(TAG, "ip_info.netmask = %s", char_target);
 
     uint32_t normal_mask = switch_ip_orientation(&ip_info.netmask.addr);
-    // esp_ip4addr_ntoa(&normal_mask.addr, char_target, IP4ADDR_STRLEN_MAX);
-    // ESP_LOGI(TAG, "normal_mask = %s", char_target);
 
     maxSubnetDevice = UINT32_MAX - normal_mask - 1;
     ESP_LOGI(TAG, "maxSubnetDevice = %" PRIu32, maxSubnetDevice);
@@ -87,7 +82,7 @@ void arpScan(esp_netif_t *lwip_netif)
     deviceInfos = calloc(maxSubnetDevice, sizeof(deviceInfo));
     if (deviceInfos == NULL)
     {
-        ESP_LOGE(TAG, "Eșec la alocarea memoriei deviceInfos");
+        ESP_LOGE(TAG, "Failed to alloc for deviceInfos.");
         return;
     }
     if (deviceInfos == NULL)
@@ -192,10 +187,10 @@ bool checkIPStatus(esp_netif_t *lwip_netif, const char *ip_str_to_check)
         ESP_LOGE(TAG, "Netif NULL");
         return false;
     }
-    // sterge intrarea ARP din cache (daca exista)
+    // delete ARP entry from cache
     etharp_cleanup_netif(netif);
 
-    // Trimite cerere ARP catre IP-ul dorit
+    // Send ARP to specific IP
     etharp_request(netif, &ip_check);
     vTaskDelay(ARPTIMEOUT / portTICK_PERIOD_MS);
 
@@ -207,7 +202,7 @@ bool checkIPStatus(esp_netif_t *lwip_netif, const char *ip_str_to_check)
         sprintf(mac, "%02X:%02X:%02X:%02X:%02X:%02X",
                 eth_ret->addr[0], eth_ret->addr[1], eth_ret->addr[2],
                 eth_ret->addr[3], eth_ret->addr[4], eth_ret->addr[5]);
-        ESP_LOGI(TAG, "Dispozitivul %s is online. MAC: %s", ip_str_to_check, mac);
+        ESP_LOGI(TAG, "Device %s is online. MAC: %s", ip_str_to_check, mac);
         return true;
     }
 

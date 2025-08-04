@@ -28,5 +28,3 @@ enum
 };
 
 void add_bluetooth(void);
-
-extern SemaphoreHandle_t xSemaphoreBT;

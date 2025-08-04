@@ -16,9 +16,6 @@
 
 #include "freertos/semphr.h"
 
-extern const uint8_t server_root_cert_pem_start[] asm("_binary_server_root_cert_pem_start");
-extern const uint8_t server_root_cert_pem_end[] asm("_binary_server_root_cert_pem_end");
-
 int int_to_str(int num, char *buf)
 {
     int i = 0;
@@ -30,14 +27,12 @@ int int_to_str(int num, char *buf)
         return 1;
     }
 
-    // Procesare cifre în ordine inversă
     while (num > 0)
     {
         buf[i++] = (num % 10) + '0';
         num /= 10;
     }
 
-    // Inversăm șirul pentru a obține rezultatul corect
     for (int j = 0; j < i / 2; j++)
     {
         char temp = buf[j];
@@ -45,8 +40,8 @@ int int_to_str(int num, char *buf)
         buf[i - j - 1] = temp;
     }
 
-    buf[i] = '\0'; // Terminator null
-    return i;      // Returnează numărul de caractere generate
+    buf[i] = '\0'; 
+    return i;      
 }
 
 void send_post_request(char *data_send)
@@ -135,5 +130,5 @@ void https_get_request(esp_tls_cfg_t cfg, const char *WEB_SERVER_URL, const char
         return;
     }
 
-    ESP_LOGE(TAG, "Eșec HTTPS după %d încercări", MAX_HTTPS_RETRIES);
+    ESP_LOGE(TAG, "Esec HTTPS dupa %d incercari", MAX_HTTPS_RETRIES);
 }

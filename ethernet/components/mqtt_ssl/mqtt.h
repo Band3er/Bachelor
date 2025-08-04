@@ -31,3 +31,9 @@ char* get_mqtt_data(void);
 bool is_mqtt_data_available(void);
 
 static SemaphoreHandle_t xSemaphore_Task;
+
+// ********************
+// you need to include the certificates from the client and from the AWS
+// for when you configure a device (or a thing)
+// this component was used with AWS IoT Core
+// ********************
